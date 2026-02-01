@@ -161,14 +161,21 @@ void insertChild(pcb_t* prnt, pcb_t* p) {
   p->p_parent = prnt;
 
 }
+
+
 /** rimuove il primo figlio del pcb p. Ritorna null se non ci sono figli, pcb altrimenti */
 pcb_t* removeChild(pcb_t* p) {
   if (list_empty(&p->p_child)){
     return NULL;
   }
+  pcb_t *child = container_of(p->p_child.next,pcb_t,p_sib);
   list_del(p->p_child.next); // p_child e' la sentinella (tipo head)
-  return p;
+  child->p_parent = NULL;
+  INIT_LIST_HEAD(&child->p_sib); // devo aggiornare i valori dei sibiling per evitare brutte sorprese
+  return child;
 }
+
+
 /** Rimuove il link tra pcb  e il suo genitore. Se p non ha parenti ritorna null altrimenti p */
 pcb_t* outChild(pcb_t* p) {
   if (p->p_parent == NULL) {

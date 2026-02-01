@@ -116,23 +116,38 @@ pcb_t* removeBlocked(int* semAdd) {
  * Questa non mi è chiara: perchè ovrei voler rimuovere dalla coda di un semaforo un processo preciso?
  * Trovo processo sulla coda definita da p(contiene riferimento al suo semaforo) e lo rimuove.
  * Se non c'è ritorna NULL altrimenti p
+ * 
  */
 pcb_t* outBlocked(pcb_t* p) {
+  if(p == NULL || p->p_semAdd == NULL) return NULL;
+
   struct list_head *iter;
   list_for_each(iter, &semd_h){
     semd_t *sem = container_of(iter,semd_t,s_link);
+
     if (sem->s_key == p->p_semAdd){
       struct list_head *iter2;
-      if (list_empty(&sem->s_procq)){
-        return NULL;
-      }
+
       list_for_each(iter2, &sem->s_procq){
         pcb_t *pcb = container_of(iter2, pcb_t, p_list);
-        if(pcb->p_pid == p->p_pid){
+
+        if(pcb == p){ // tolto il controllo p_pid perchè rischioso se pid gestiti male.
           list_del(iter2);
+          INIT_LIST_HEAD(&p->p_list);
+          p->p_semAdd = NULL;
+
+          if (list_empty(&sem->s_procq)){
+          // rimuovo il sem dalla lista degli attivi e lo aggiungo a quella dei free.
+          list_del(&sem->s_link); 
+          list_add(&sem->s_link,&semdFree_h);
+          sem->s_key = NULL; // per evitare brutte sorprese mettiamo a null la key.
+          INIT_LIST_HEAD(&sem->s_procq); // reset del s_procq per sicurezza.
+        }
+
           return p;
         }
       }
+      return NULL;
 
     }
 
