@@ -5,7 +5,8 @@
 #include <../headers/const.h> // per poter usare le costanti al posto degli indirizzi SEMDEVLEN,PASSUPVECTOR
 #include <../headers/types.h> // per poter usare pcb_t 
 
-
+#include <uriscv/const.h>
+#include <uriscv/types.h>
 extern void uTLB_RefillHandler(), test(),exception_handler(); // funzioni provided esternamente e execption va ancora creata
 const int PSEUDO_CLOCK_SEM_INDEX = SEMDEVLEN -1; // indirizzo fisso per lo pseudo-clock
 /**
@@ -57,7 +58,7 @@ passupvector_t* pass_up_vector       = (passupvector_t*) PASSUPVECTOR ;
 
  /*inizializzo strutture phase1*/
  initASL();
- initPCBs();
+ initPcbs();
 
  process_counter = 0;
  soft_block_counter = 0;
@@ -68,7 +69,32 @@ passupvector_t* pass_up_vector       = (passupvector_t*) PASSUPVECTOR ;
  for(int i = 0; i < SEMDEVLEN){
     device_sem[i] = 0;
  }
-LDIT(PSECOND); //
+LDIT(PSECOND);
+
+/** 
+ * punto 6 inizializzare un singolo processo
+ * pcb_t->p_s ha i seguenti campi:
+ * typedef struct state {
+ * unsigned int entry_hi;
+ * unsigned int cause;
+ * unsigned int status;
+ * unsigned int pc_epc;
+ * unsigned int mie;
+ * unsigned int gpr[STATE_GPR_LEN];
+ * } state_t;                        ---> definizione di state_t
+*/
+
+pcb_t* root = allocPcb(); //inizializza tutto a 0
+RAMTOP(root->p_s.reg_sp); //stackpointer i registri sono definiti in uriscv/types.h grp[2]
+root->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M; //enable interrupt
+root->p_s.mie = MIE_ALL; //enable interrupt
+root->p_s.pc_epc = (memaddr) test; //bisogna assegnare al pc del processo l'indirizzo della funzione test
+
+//metto root nella lista dei processi ready
+insertProcQ(&ready_queue, root);
+process_counter++;
+scheduler(); //dobbiamo ancora fare
+
 
 }
 
