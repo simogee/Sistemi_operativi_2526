@@ -1,6 +1,7 @@
 
 
 /**
+ * 
  * Variabili da dichiarare:
  * Process count -> uint
  * Soft-block count -> uint, numero di processi partiti ma non ancora terminati
@@ -11,13 +12,14 @@
  * 
  * 
  *   
- * Bisogna inizializzare il Pass-Up Vector -> da vedere meglio (0x0FFF.F900)
+ * Bisogna inizializzare il Pass-Up Vector -> il passup vector è un vettore i cui campi puntano alle funzioni interrupt handlers (indirizzo: 0x0FFFF900)
  * 
  * 
  * Inizializzare le strutture dati della phase1, includere quindi i file della fase precedente
+ * (Bisognerà linkare i file della phase1 ?)
  * Inizializzare le strutture dati e variabili phase2 initPcbs() e initASL()
  * 
- * Load the system-wide interval Timer con 100 ms
+ * Load the system-wide interval Timer con 100 ms -> no idea atm.
  * 
  * Istanziare un process test
  * 
