@@ -1,9 +1,9 @@
-#include <../phase1/headers/asl.h> // initASL
-#include <../phase1/headers/pcb.h> // initQueue
+#include "../phase1/headers/asl.h" // initASL
+#include "../phase1/headers/pcb.h" // initQueue
 
-#include <../headers/listx.h> // per poter usare list_head
-#include <../headers/const.h> // per poter usare le costanti al posto degli indirizzi SEMDEVLEN,PASSUPVECTOR
-#include <../headers/types.h> // per poter usare pcb_t 
+#include "../headers/listx.h" // per poter usare list_head
+#include "../headers/const.h" // per poter usare le costanti al posto degli indirizzi SEMDEVLEN,PASSUPVECTOR
+#include "../headers/types.h" // per poter usare pcb_t 
 
 #include <uriscv/const.h>
 #include <uriscv/types.h>
@@ -66,7 +66,7 @@ passupvector_t* pass_up_vector       = (passupvector_t*) PASSUPVECTOR ;
  current_process = NULL;
 
  //inizializzo tutti i sem a 0
- for(int i = 0; i < SEMDEVLEN){
+ for(int i = 0; i < SEMDEVLEN;i++){
     device_sem[i] = 0;
  }
 LDIT(PSECOND);
@@ -93,7 +93,7 @@ root->p_s.pc_epc = (memaddr) test; //bisogna assegnare al pc del processo l'indi
 //metto root nella lista dei processi ready
 insertProcQ(&ready_queue, root);
 process_counter++;
-scheduler(); //dobbiamo ancora fare
+//scheduler(); //dobbiamo ancora fare
 
 
 }
