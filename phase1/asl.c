@@ -12,8 +12,8 @@ static struct list_head semd_h;     // lista di semafori attivi
 
 void mkEmptyProcQ(struct list_head* head);
 void klog_print(char *str);
-static void bp_sem(){};
 
+//qualcosa non funziona: facendo gdb sul main il programma fa system halted [0] quando fa initASL
 
 //inizializza semdFree_h con MAXPROC. analoga a quella delle queue.
 void initASL() {
@@ -53,9 +53,9 @@ int insertBlocked(int* semAdd, pcb_t* p) {
                     list_del(&new_sem->s_link);
                     //inizializzo il nuovo semaforo attivato
                     new_sem->s_key = semAdd;
-                    list_add(&new_sem->s_link,sem->s_link.prev); //aggiungo alla lista dei sem Attivi
                     mkEmptyProcQ(&new_sem->s_procq);
-
+                    list_add_tail(&new_sem->s_link,iter); //aggiungo alla lista dei sem Attivi
+                  
                     list_add_tail(&p->p_list,&new_sem->s_procq); //aggiungo in coda il pcb alla lista dei processi associati al semaforo
                     p->p_semAdd = semAdd; //forse ridondante ma per sicurezza
 
@@ -98,12 +98,19 @@ pcb_t* removeBlocked(int* semAdd) {
   list_for_each(iter, &semd_h){
   semd_t *sem = container_of(iter,semd_t,s_link);
     if(sem->s_key == semAdd){
-        pcb_t* pcb = container_of(sem->s_procq.next, pcb_t, p_list );
-        list_del(&sem->s_procq);
+      if(list_empty(&sem->s_procq)) return NULL;
+        struct list_head* first_el= sem->s_procq.next;
+        pcb_t* pcb = container_of(first_el, pcb_t, p_list );
+
+        list_del(first_el);
+        INIT_LIST_HEAD(&pcb->p_list);
+        pcb->p_semAdd = NULL;
+
         if(list_empty(&sem->s_procq)){
           sem->s_key =  NULL;
           list_del(&sem->s_link);
           list_add(&sem->s_link,&semdFree_h);
+          
         }
         return pcb;
     }

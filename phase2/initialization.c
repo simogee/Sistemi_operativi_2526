@@ -7,8 +7,9 @@
 
 #include <uriscv/const.h>
 #include <uriscv/types.h>
-extern void uTLB_RefillHandler(), test(); // funzioni provided esternamente e execptionhandler andrà messa nel file exception
+extern void uTLB_RefillHandler(), test(),exception_handler(), print(char *msg),bp(),klog_print(char* str); // funzioni provided esternamente e execptionhandler andrà messa nel file exception
 const int PSEUDO_CLOCK_SEM_INDEX = SEMDEVLEN -1; // indirizzo fisso per lo pseudo-clock
+
 /**
  *
  * Variabili da dichiarare:
@@ -51,10 +52,10 @@ int main(){
 
 /* inizializzazione del pass-up Vector la struttura passupvector_t si trova in usr/include/uriscv */
 passupvector_t* pass_up_vector       = (passupvector_t*) PASSUPVECTOR ;
- //pass_up_vector->tlb_refill_handler   = (memaddr) uTLB_RefillHandler;
- //pass_up_vector->tlb_refill_stackPtr = (memaddr) KERNELSTACK; // top della funzione
- //pass_up_vector->exception_handler   = (memaddr) exception_handler;
- //pass_up_vector->exception_stackPtr  = (memaddr) KERNELSTACK;
+pass_up_vector->tlb_refill_handler   = (memaddr) uTLB_RefillHandler;
+pass_up_vector->tlb_refill_stackPtr = (memaddr) KERNELSTACK; // top della funzione
+pass_up_vector->exception_handler   = (memaddr) exception_handler;
+pass_up_vector->exception_stackPtr  = (memaddr) KERNELSTACK;
 
  /*inizializzo strutture phase1*/
  initASL();
@@ -93,6 +94,8 @@ root->p_s.pc_epc = (memaddr) test; //bisogna assegnare al pc del processo l'indi
 //metto root nella lista dei processi ready
 insertProcQ(&ready_queue, root);
 process_counter++;
+bp();
+klog_print("finquituttook");
 //scheduler(); //dobbiamo ancora fare
 
 
