@@ -96,26 +96,30 @@ root->p_s.pc_epc = (memaddr) test; //bisogna assegnare al pc del processo l'indi
 //metto root nella lista dei processi ready
 insertProcQ(&ready_queue, root);
 process_counter++;
-bp();
-klog_print("finquituttook");
 scheduler(); //dobbiamo ancora fare
 
 
 }
 
 void scheduler(){
-  if (process_counter == 0) HALT();
+  if (process_counter == 0){
+    HALT();
+  }
+  current_process = removeProcQ(&ready_queue); // rimuovo il PCB dalla testa dei ready queue e lo metto come processo corrente (inizio a eseguire il processo)
+  current_process--;
+  setTIMER(TIMESLICE);
+  LDST(&current_process->p_s);
+
   if (process_counter >0 && soft_block_counter >0){
     setMIE(MIE_ALL  & ~MIE_MTIE_MASK);
     unsigned int status = getSTATUS();
     status |= MSTATUS_MIE_MASK;
     setSTATUS(status);
     WAIT();
-  }
-  if (process_counter >0 && soft_block_counter ==  0){
+
+  }else if (process_counter >0 && soft_block_counter ==  0){
     PANIC();
   }
-  current_process = removeProcQ(&ready_queue); // rimuovo il PCB dalla testa dei ready queue e lo metto come processo corrente (inizio a eseguire il processo)
-  setTIMER(TIMESLICE);
-  LDST(&current_process->p_s);
+  bp();
+
 }
