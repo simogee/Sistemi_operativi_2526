@@ -7,6 +7,7 @@
 
 #include <uriscv/const.h>
 #include <uriscv/types.h>
+#include <uriscv/liburiscv.h>
 extern void uTLB_RefillHandler(), test(),exception_handler(), print(char *msg),bp(),klog_print(char* str); // funzioni provided esternamente e execptionhandler andrà messa nel file exception
 const int PSEUDO_CLOCK_SEM_INDEX = SEMDEVLEN -1; // indirizzo fisso per lo pseudo-clock
 
@@ -48,6 +49,7 @@ const int PSEUDO_CLOCK_SEM_INDEX = SEMDEVLEN -1; // indirizzo fisso per lo pseud
  int device_sem [SEMDEVLEN]; // un sem per device + 1 per pseudo-clock
  int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo sarà solo per lo pseudoclock
 
+void scheduler();
 int main(){
 
 /* inizializzazione del pass-up Vector la struttura passupvector_t si trova in usr/include/uriscv */
@@ -96,8 +98,24 @@ insertProcQ(&ready_queue, root);
 process_counter++;
 bp();
 klog_print("finquituttook");
-//scheduler(); //dobbiamo ancora fare
+scheduler(); //dobbiamo ancora fare
 
 
 }
 
+void scheduler(){
+  if (process_counter == 0) HALT();
+  if (process_counter >0 && soft_block_counter >0){
+    setMIE(MIE_ALL  & ~MIE_MTIE_MASK);
+    unsigned int status = getSTATUS();
+    status |= MSTATUS_MIE_MASK;
+    setSTATUS(status);
+    WAIT();
+  }
+  if (process_counter >0 && soft_block_counter ==  0){
+    PANIC();
+  }
+  current_process = removeProcQ(&ready_queue); // rimuovo il PCB dalla testa dei ready queue e lo metto come processo corrente (inizio a eseguire il processo)
+  setTIMER(TIMESLICE);
+  LDST(&current_process->p_s);
+}
