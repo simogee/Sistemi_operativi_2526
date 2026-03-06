@@ -8,7 +8,7 @@ void scheduler(){
   process_counter--;
   setTIMER(TIMESLICE);
   // klog_print("woooo");
-  bp();
+    bp();
   LDST(&current_process->p_s);
   
   }
