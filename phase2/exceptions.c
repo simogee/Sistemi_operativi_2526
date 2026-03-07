@@ -58,17 +58,19 @@ void syscallHandler(){
       */
      if(ptr_exc->reg_a0 < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_M){
         //qui dobbiamo sviluppare le nostre syscall NSYS1-NSY10
+        // dentro const.h degli header locali abbiamo le def per le syscalls
+        // bloccanti: (NSYS3, NSYS5, NSYS7 and NSYS10)
         switch(a0){
-            case -1:
-            case -2:
-            case -3:
-            case -4:
-            case -5:
-            case -6:
-            case -7:
-            case -8:
-            case -9:
-            case -10:
+            case CREATEPROCESS:
+            case TERMPROCESS:
+            case PASSEREN:
+            case VERHOGEN:
+            case DOIO:
+            case GETTIME:
+            case CLOCKWAIT:
+            case GETSUPPORTPTR:
+            case GETPROCESSID:
+            case YIELD:
             default:
                 trapHandler();
         }
