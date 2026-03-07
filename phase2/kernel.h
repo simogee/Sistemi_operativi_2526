@@ -12,7 +12,7 @@
 #include <uriscv/const.h>
 #include <uriscv/types.h>
 #include <uriscv/liburiscv.h>
-
+#include <uriscv/cpu.h>
 /* Dichiarazione delle variabili globali*/
 
 /*
