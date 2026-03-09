@@ -37,6 +37,27 @@ void exception_handler(){
     }
 
 }
+//il pid si incrementa con allocPcb() in automatico
+void create_process(){ // se non c'è spazio ritorna -1 nel registro a0 del chiamate altrimenti ritorna il pid del nuovo processo in a0
+  pcb_t* new_proc = allocPcb();
+  if (new_proc == NULL){ // non c'e spazio
+    ptr_exc->reg_a0 = -1;
+    return ;
+  }
+  ptr_exc->reg_a0 = new_proc->p_pid;
+  new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio (a quanto pare)
+  if ((support_t*)ptr_exc->reg_a3 == NULL){
+    new_proc->p_supportStruct = NULL;
+  }else{
+    new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
+  }
+  insertProcQ(struct list_head *head, pcb_t *p)
+
+
+
+
+
+}
 
 
 void syscallHandler(){
@@ -60,9 +81,10 @@ void syscallHandler(){
         //qui dobbiamo sviluppare le nostre syscall NSYS1-NSY10
         // dentro const.h degli header locali abbiamo le def per le syscalls
         // bloccanti: (NSYS3, NSYS5, NSYS7 and NSYS10)
-        switch(a0){
+        switch(ptr_exc->reg_a0){
             case CREATEPROCESS:
-
+                create_process();
+                break;
             case TERMPROCESS:
             case PASSEREN:
             case VERHOGEN:
@@ -85,8 +107,6 @@ void syscallHandler(){
      }
 }
 
-//il pid si incrementa con allocPcb() in automatico
-void create_process() // se non c'è spazio ritorna -1 nel registro a0 del chiamate altrimenti ritorna il pid del nuovo processo in a0
 
 
 
