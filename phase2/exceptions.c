@@ -6,7 +6,6 @@ void exception_handler();
 void syscallHandler();
 void uTLB_RefillHandler();
 
-state_t* ptr_exc; //lo dichiaro qui così posso utilizzarlo liberamente nelle varie funzioni
 
 void uTLB_RefillHandler() {
 setENTRYHI(0x80000000);
@@ -19,10 +18,10 @@ LDST((state_t*) BIOSDATAPAGE);
 
 void exception_handler(){
 
-    ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
+    state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
     unsigned int cause = getCAUSE();
-   
-    if(CAUSE_IS_INT(cause))   
+
+    if(CAUSE_IS_INT(cause))
     {
         interruptHandler(); //questo sarà in un altro file.
     }
@@ -33,34 +32,54 @@ void exception_handler(){
         else if (cause_code >= 24 && cause_code <= 28)
             tlbHandler();
         else
-            trapHandler();
+            trapHandler(); // no panic?
     }
 
 }
 //il pid si incrementa con allocPcb() in automatico
-void create_process(){ // se non c'è spazio ritorna -1 nel registro a0 del chiamate altrimenti ritorna il pid del nuovo processo in a0
-  pcb_t* new_proc = allocPcb();
-  if (new_proc == NULL){ // non c'e spazio
+void create_process(state_t* ptr_exc){
+  pcb_t* new_proc = allocPcb(); // Nota: di defult:
+                                // p_time = 0
+                                // p_semAdd = NULL
+                                // viene generato un val casuale al p_pid
+  if (new_proc == NULL){ // non c'e spazio -> salvo -1 nel registro s0 del padre
     ptr_exc->reg_a0 = -1;
     return ;
   }
-  ptr_exc->reg_a0 = new_proc->p_pid;
+  ptr_exc->reg_a0 = new_proc->p_pid; // c'e' spazio -> salvo il pid del figlio nel reg a0 del padre
   new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio (a quanto pare)
   if ((support_t*)ptr_exc->reg_a3 == NULL){
     new_proc->p_supportStruct = NULL;
   }else{
     new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
   }
-  insertProcQ(struct list_head *head, pcb_t *p)
+  insertProcQ(headProcQ(current_process), new_proc);
+  insertChild(current_process, new_proc);
+  process_counter++;
+}
+void terminate_process(int PID){
+  if (PID == 0){ // se PID = 0 elimino il current process (e i suoi figli)
+    while(emptyChild(current_process)){
+      removeChild(current_process);
+    }
+    return;
+  }
+  // se PID != 0 bisogna cercare il processo con quel PID e terminarlo
+  // cerco nella ready queue
+  struct list_head tmp_ready_queue = ready_queue;
+  while (tmp_ready_queue !=  NULL){
+    pcb_t* proc = container_of(tmp_ready_queue, pcb_t,p_list );
+    if (proc->p_pid == PID){
+      while(emptyChild(proc)){
+        removeChild(proc);
+    }
 
-
-
-
+    }
+  }
 
 }
 
-
-void syscallHandler(){
+void syscallHandler(state_t* ptr_exc){
     /**
      * Controllo registri a0-a3 per individuare il valore della syscall
      *
@@ -83,9 +102,11 @@ void syscallHandler(){
         // bloccanti: (NSYS3, NSYS5, NSYS7 and NSYS10)
         switch(ptr_exc->reg_a0){
             case CREATEPROCESS:
-                create_process();
+                create_process(ptr_exc);
                 break;
             case TERMPROCESS:
+                terminate_process();
+                break;
             case PASSEREN:
             case VERHOGEN:
             case DOIO:
