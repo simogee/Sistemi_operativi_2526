@@ -62,6 +62,7 @@ void syscallHandler(){
         // bloccanti: (NSYS3, NSYS5, NSYS7 and NSYS10)
         switch(a0){
             case CREATEPROCESS:
+
             case TERMPROCESS:
             case PASSEREN:
             case VERHOGEN:
@@ -84,6 +85,8 @@ void syscallHandler(){
      }
 }
 
+//il pid si incrementa con allocPcb() in automatico
+void create_process() // se non c'è spazio ritorna -1 nel registro a0 del chiamate altrimenti ritorna il pid del nuovo processo in a0
 
 
 
