@@ -28,11 +28,11 @@ void exception_handler(){
     else{
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
         if (cause_code == 8 || cause_code == 11)
-            syscallHandler();
+            syscallHandler(ptr_exc);
         else if (cause_code >= 24 && cause_code <= 28)
             tlbHandler();
         else
-            trapHandler(); // no panic?
+            trapHandler(); // no panic? 
     }
 
 }
@@ -44,19 +44,21 @@ void create_process(state_t* ptr_exc){
                                 // viene generato un val casuale al p_pid
   if (new_proc == NULL){ // non c'e spazio -> salvo -1 nel registro s0 del padre
     ptr_exc->reg_a0 = -1;
-    return ;
+    return;
   }
   ptr_exc->reg_a0 = new_proc->p_pid; // c'e' spazio -> salvo il pid del figlio nel reg a0 del padre
-  new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio (a quanto pare)
+  new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio: il padre deve preparare uno state_t da passare al figlio.
   if ((support_t*)ptr_exc->reg_a3 == NULL){
     new_proc->p_supportStruct = NULL;
   }else{
     new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
   }
-  insertProcQ(headProcQ(current_process), new_proc);
   insertChild(current_process, new_proc);
-  process_counter++;
+  //nuovo processo va inserito nella testa della readyqueue
+  insertProcQ(&ready_queue, new_proc);
+  process_counter++; //questo forse non va ma va chiamato lo scheduler.
 }
+
 void terminate_process(int PID){
   if (PID == 0){ // se PID = 0 elimino il current process (e i suoi figli)
     while(emptyChild(current_process)){
@@ -132,3 +134,6 @@ void syscallHandler(state_t* ptr_exc){
 
 
 
+/**
+ * 
+ */
