@@ -63,21 +63,47 @@ void terminate_process(int PID){
   if (PID == 0){ // se PID = 0 elimino il current process (e i suoi figli)
     while(emptyChild(current_process)){
       removeChild(current_process);
+      process_counter--;
     }
     return;
   }
+
+  /**
+   * struct list_head* iter;
+        list_for_each(iter,&head) {
+                kitem_t* item=container_of(iter,kitem_t,list);
+                printf("Elemento i-esimo %d \n",item->elem);
+        }
+
+    pos: puntatore da utilizzare per iterare sugli elementi
+    head: inizio della lista (elemento sentinella)
+*/
   // se PID != 0 bisogna cercare il processo con quel PID e terminarlo
   // cerco nella ready queue
-  struct list_head tmp_ready_queue = ready_queue;
-  while (tmp_ready_queue !=  NULL){
-    pcb_t* proc = container_of(tmp_ready_queue, pcb_t,p_list );
-    if (proc->p_pid == PID){
-      while(emptyChild(proc)){
-        removeChild(proc);
-    }
-
+  struct list_head* iter;
+  list_for_each(iter, &ready_queue){
+    pcb_t* item = container_of(iter,pcb_t,p_list);
+    if(item->p_pid == PID){
+        while(emptyChild(item)){
+            pcb_t* kill_child=removeChild(item);
+            freePcb(kill_child);
+            process_counter--;
+        }
+        pcb_t* to_remove = outProcQ(&ready_queue,item); // ritorna il pcb e lo rimuove dalla coda.
+        freePcb(to_remove); // rilascio la memoria 
+        process_counter--;
     }
   }
+
+  //sezione semafori
+  // troviamo il processo
+  //extern int device_sem [SEMDEVLEN]; extern int soft_block_counter;
+  iter = NULL;
+  
+  list_for_each(iter, );
+   
+  
+   
 
 }
 
