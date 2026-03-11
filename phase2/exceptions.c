@@ -103,10 +103,26 @@ void terminate_process(int PID){
   list_for_each(iter, );
    
   
-   
 
 }
 
+
+void Passeren(state_t* ptr_exc){
+    //va fatta una p sull'address del semaforo che si trova in a1.
+    //se > 0 allora decremento e controllo passato al current_process
+    //se < 0 allora processo bloccato sul semaforo puntato e spostiamo il current_process sulla lista ASL relativa e si chiama scheduler.
+}
+
+void Verhogen(state_t* ptr_exc){
+    //physical address sempre in a1
+    //NON BLOCCANTE
+    //se V diventa positiva ->  sveglio il pcb dal semaforo e lo metto in ready queue
+    // se V resta negativa -> incremento e basta
+    // poi riprende current 
+}
+
+
+void DoIO(state_t* ptr_exc)
 void syscallHandler(state_t* ptr_exc){
     /**
      * Controllo registri a0-a3 per individuare il valore della syscall
