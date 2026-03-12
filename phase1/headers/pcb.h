@@ -47,4 +47,7 @@ pcb_t* removeChild(pcb_t* p);
 // Remove and return the PCB "p" from the parent's children list
 pcb_t* outChild(pcb_t* p);
 
+// Find the pcb_t with the pid associated. if not found then return null
+pcb_t* findByPid(int pid)
+
 #endif
