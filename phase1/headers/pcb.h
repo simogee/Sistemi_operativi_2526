@@ -48,6 +48,6 @@ pcb_t* removeChild(pcb_t* p);
 pcb_t* outChild(pcb_t* p);
 
 // Find the pcb_t with the pid associated. if not found then return null
-pcb_t* findByPid(int pid)
+pcb_t* findByPid(int pid);
 
 #endif

@@ -62,50 +62,51 @@ void create_process(state_t* ptr_exc){
   process_counter++; //questo forse non va ma va chiamato lo scheduler.
 }
 
-void terminate_process(int PID){
-  if (PID == 0){ // se PID = 0 elimino il current process (e i suoi figli)
-    while(emptyChild(current_process)){
-      removeChild(current_process);
-      process_counter--;
-    }
-    return;
+void terminate_process(state_t* ptr_exc){
+// se PID = 0 elimino il current process (e i suoi figli)
+if (ptr_exc->reg_a2 == 0){ 
+  while(emptyChild(current_process)){
+    pcb_t* child =removeChild(current_process);
+    freePcb(child);
+    process_counter--;
   }
+  freePcb(current_process);
+  process_counter--;
+  return;
+}
 
-  /**
-   * struct list_head* iter;
-        list_for_each(iter,&head) {
-                kitem_t* item=container_of(iter,kitem_t,list);
-                printf("Elemento i-esimo %d \n",item->elem);
-        }
+//se pid != 0 bisogna cercare il pcb.
+pcb_t* process_to_rem = findByPid(ptr_exc->reg_a2);
+process_to_rem = outProcQ(&ready_queue,process_to_rem); 
+pcb_t* child_to_rem = NULL; // puntatore che useremo per rimuovere i child
 
-    pos: puntatore da utilizzare per iterare sugli elementi
-    head: inizio della lista (elemento sentinella)
-*/
-  // se PID != 0 bisogna cercare il processo con quel PID e terminarlo
-  // cerco nella ready queue
-  struct list_head* iter;
-  list_for_each(iter, &ready_queue){
-    pcb_t* item = container_of(iter,pcb_t,p_list);
-    if(item->p_pid == PID){
-        while(emptyChild(item)){
-            pcb_t* kill_child=removeChild(item);
-            freePcb(kill_child);
-            process_counter--;
-        }
-        pcb_t* to_remove = outProcQ(&ready_queue,item); // ritorna il pcb e lo rimuove dalla coda.
-        freePcb(to_remove); // rilascio la memoria 
+// se lo troviamo sulla readyqueue
+if(process_to_rem != NULL){
+    while(emptyChild(process_to_rem)){
+        child_to_rem = removeChild(process_to_rem);
+        freePcb(child_to_rem);
         process_counter--;
     }
-  }
-
-  //sezione semafori
-  // troviamo il processo
-  //extern int device_sem [SEMDEVLEN]; extern int soft_block_counter;
-  iter = NULL;
-  
-  list_for_each(iter, );
-   
-  
+    freePcb(process_to_rem);   
+    process_counter--;
+    return; // vediamo poi i return come vanno gestiti
+    }
+// casi rimasti: è su un semaforo o il pid non esiste.
+process_to_rem = outBlocked(process_to_rem); //check per vedere se è su un semaforo
+if(process_to_rem != NULL){
+    while (emptyChild(process_to_rem))
+    {
+       child_to_rem = removeChild(process_to_rem);
+       freePcb(child_to_rem);
+       process_counter--;
+    }
+    freePcb(process_to_rem);
+    process_counter--;
+    soft_block_counter--; //perchè era su un semaforo
+    return;
+}
+// se arriviamo qui il pid non è valido
+    return; //forse dovremmo gestirlo meglio
 
 }
 
