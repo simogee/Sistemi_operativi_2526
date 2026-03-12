@@ -36,6 +36,9 @@ void exception_handler(){
     }
 
 }
+
+
+/** Per tutte le SYSTEMCALL vengono passati i parametri utilizzati nei registri a0-a3. a0 contiene il tipo di chiamata da effettuare*/
 //il pid si incrementa con allocPcb() in automatico
 void create_process(state_t* ptr_exc){
   pcb_t* new_proc = allocPcb(); // Nota: di defult:
@@ -122,7 +125,9 @@ void Verhogen(state_t* ptr_exc){
 }
 
 
-void DoIO(state_t* ptr_exc)
+void DoIO(state_t* ptr_exc){
+
+}
 void syscallHandler(state_t* ptr_exc){
     /**
      * Controllo registri a0-a3 per individuare il valore della syscall

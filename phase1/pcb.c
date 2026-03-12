@@ -188,3 +188,18 @@ pcb_t* outChild(pcb_t* p) {
 
     return p;
 }
+
+
+
+/** Funzione ricerca pcb_t per pid. Ritorna un puntatore al pcb_t con quel pid 
+ * pcb_t pcbFree_table[MAXPROC]; -> tabella che contiene tutti i processi usati e non usati
+*/
+
+pcb_t* findByPid(int pid){
+    int i = 0;
+    while(i < MAXPROC){
+        if(pcbFree_table[i].p_pid == pid)  // forse bisognerebbe fare un check per vedere se viene usata?
+            return &pcbFree_table[i];
+    }
+    return NULL;
+}
