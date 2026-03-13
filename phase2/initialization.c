@@ -25,11 +25,11 @@ struct list_head ready_queue; // coda dei processi
 pcb_t* current_process;
 int device_sem [SEMDEVLEN]; // un sem per device + 1 per pseudo-clock
 int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo sarà solo per lo pseudoclock
-
+cpu_t slice_start;
 
 int main(){
 
-
+slice_start=0;
 /* inizializzazione del pass-up Vector la struttura passupvector_t si trova in usr/include/uriscv */
 passupvector_t* pass_up_vector       = (passupvector_t*) PASSUPVECTOR ; // * serve per poter accedere a PASSUPVECTOR
 pass_up_vector->tlb_refill_handler   = (memaddr) uTLB_RefillHandler;
@@ -58,9 +58,13 @@ root->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M; //enable interrupt
 root->p_s.mie = MIE_ALL; //enable interrupt
 root->p_s.pc_epc = (memaddr) test; //bisogna assegnare al pc del processo l'indirizzo della funzione test
 
+//inizializzo Ready queue
+INIT_LIST_HEAD(&ready_queue);
+
 //metto root nella lista dei processi ready
 insertProcQ(&ready_queue, root);
 process_counter++;
+
 scheduler(); //dobbiamo ancora fare
 
 

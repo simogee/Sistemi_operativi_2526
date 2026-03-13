@@ -35,7 +35,7 @@ extern struct list_head ready_queue; // coda dei processi
 extern pcb_t* current_process;
 extern int device_sem [SEMDEVLEN]; // un sem per device + 1 per pseudo-clock
 extern int* pseudo_clock_sem; // questo indirizzo sarà solo per lo pseudoclock
-
+extern cpu_t slice_start; // momento di inizio esecuzione processo
 /** funzioni */
 void scheduler();
 

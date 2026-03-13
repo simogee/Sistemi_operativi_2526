@@ -87,9 +87,32 @@ if(process_to_kill != NULL){ // esiste il processo da uccidere
 
 
 void Passeren(state_t* ptr_exc){
-    //va fatta una p sull'address del semaforo che si trova in a1.
+    //va fatta una p sull'address del semaforo che si trova in a1((semAdd).
     //se > 0 allora decremento e controllo passato al current_process
     //se < 0 allora processo bloccato sul semaforo puntato e spostiamo il current_process sulla lista ASL relativa e si chiama scheduler.
+    /** Semaforo:
+     *  p1->semadd = &device_sem[num]; 
+     *  *p1->semadd = valore del semaforo; 
+     */
+    int* semaphore = (int*)ptr_exc->reg_a1;
+    (*semaphore)--; //devo decrementare il valore puntato
+    
+    if(*semaphore >= 0){ //NON bloccante
+        LDST(&current_process->p_s); // viene ricaricato lo stato aggiornato del processo chiamante
+    }
+    else{               //Bloccante
+
+        int check = insertBlocked(semaphore,current_process); //inserisce il processo nella coda del semaforo relativo.
+        if(check == 1){
+            PANIC();  //non ci sono semafori liberi
+        }
+        
+        ptr_exc->pc_epc += WORDLEN; // incremento il program counter di 4 per evitare di fare loop infinito
+        current_process->p_s = *ptr_exc; // salvo lo stato aggiornato sul pcb
+        current_process = NULL;
+        scheduler();
+    }
+
 }
 
 void Verhogen(state_t* ptr_exc){
