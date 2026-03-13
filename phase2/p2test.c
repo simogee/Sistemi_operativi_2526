@@ -19,6 +19,9 @@
 #include "../headers/types.h"
 #include <uriscv/liburiscv.h>
 
+#include "kernel.h"
+extern void klog_print(char *msg);
+
 typedef unsigned int devregtr;
 
 /* hardware constants */
@@ -147,12 +150,11 @@ void test() {
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0); /* V(sem_testsem)   */
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0);
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0);
-
     if (sem_testsem != 3) {
         print("Error: wrong semaphore value\n");
         PANIC();
     }
-
+   
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
@@ -161,7 +163,8 @@ void test() {
         print("Error: wrong semaphore value\n");
         PANIC();
     }
-
+   bp();
+   
     print("p1 v(sem_testsem)\n");
 
     /* set up states of the other processes */

@@ -26,7 +26,7 @@ pcb_t* current_process;
 int device_sem [SEMDEVLEN]; // un sem per device + 1 per pseudo-clock
 int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo sarà solo per lo pseudoclock
 cpu_t slice_start;
-
+extern void test();
 
 /**funzione da  gcc/libgcc/memcpy.c */
 void *memcpy(void *dest, const void *src, unsigned int len)

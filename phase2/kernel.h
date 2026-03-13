@@ -38,5 +38,6 @@ extern int* pseudo_clock_sem; // questo indirizzo sarà solo per lo pseudoclock
 extern cpu_t slice_start; // momento di inizio esecuzione processo
 /** funzioni */
 void scheduler();
+void bp();
 
 #endif 

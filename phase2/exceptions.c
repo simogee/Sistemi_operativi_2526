@@ -94,12 +94,14 @@ void Passeren(state_t* ptr_exc){
      *  p1->semadd = &device_sem[num]; 
      *  *p1->semadd = valore del semaforo; 
      */
+    
     int* semaphore = (int*)ptr_exc->reg_a1;
     (*semaphore)--; //devo decrementare il valore puntato
-    
+    //funziona fino a qui
     if(*semaphore >= 0){ //NON bloccante
         //devo aggiornare il program counter e ritornare il controllo al current process
         ptr_exc->pc_epc+=WORDLEN;
+        
         LDST(ptr_exc);
     }
     else{               //Bloccante
@@ -117,6 +119,7 @@ void Passeren(state_t* ptr_exc){
         }
         soft_block_counter++;
         current_process = NULL; //dereferenzio il current process
+
         scheduler();
     }
 
@@ -163,11 +166,13 @@ void syscallHandler(state_t* ptr_exc){
       * MSTATUS_MPP_U = user mode 
       * MSTATUS_MPP_M = kernel mode
       */
-     if(ptr_exc->reg_a0 < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_M){
+     //fino a qui funziona
+     int syscallnum = (int) ptr_exc->reg_a0;
+     if(syscallnum < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_M){
         //qui dobbiamo sviluppare le nostre syscall NSYS1-NSY10
         // dentro const.h degli header locali abbiamo le def per le syscalls
         // bloccanti: (NSYS3, NSYS5, NSYS7 and NSYS10)
-        switch(ptr_exc->reg_a0){
+        switch(syscallnum){
             case CREATEPROCESS:
                 create_process(ptr_exc);
                 break;
@@ -175,7 +180,12 @@ void syscallHandler(state_t* ptr_exc){
                 terminate_process(ptr_exc);
                 break;
             case PASSEREN:
+               //funziona fino a qui
+                Passeren(ptr_exc);
+                break;
             case VERHOGEN:
+                Verhogen(ptr_exc);
+                break;
             case DOIO:
             case GETTIME:
             case CLOCKWAIT:
@@ -186,8 +196,8 @@ void syscallHandler(state_t* ptr_exc){
                 //trapHandler();
         }
      }
-     else if(ptr_exc->reg_a0 < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_U){
-        ptr_exc->status = PRIVINSTR; // errore di permesso
+     else if(syscallnum< 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_U){
+        ptr_exc->cause = PRIVINSTR; // errore di permesso
         //trapHandler();
      }
      else{ //richiesta insesistente
