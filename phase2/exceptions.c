@@ -7,14 +7,14 @@ void syscallHandler();
 void uTLB_RefillHandler();
 
 
-void uTLB_RefillHandler() {
+/*void uTLB_RefillHandler() {
 setENTRYHI(0x80000000);
 setENTRYLO(0x00000000);
 TLBWR();
 LDST((state_t*) BIOSDATAPAGE);
-}
+}*/
 
-
+void subTree_killer(pcb_t* p);
 
 void exception_handler(){
 
@@ -23,16 +23,16 @@ void exception_handler(){
 
     if(CAUSE_IS_INT(cause))
     {
-        interruptHandler(); //questo sarà in un altro file.
+        //interruptHandler(); //questo sarà in un altro file.
     }
     else{
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
         if (cause_code == 8 || cause_code == 11)
             syscallHandler(ptr_exc);
-        else if (cause_code >= 24 && cause_code <= 28)
-            tlbHandler();
+       /* else if (cause_code >= 24 && cause_code <= 28)
+            //tlbHandler();
         else
-            trapHandler(); // no panic? 
+            trapHandler(); // no panic? */
     }
 
 }
@@ -183,15 +183,15 @@ void syscallHandler(state_t* ptr_exc){
             case GETPROCESSID:
             case YIELD:
             default:
-                trapHandler();
+                //trapHandler();
         }
      }
      else if(ptr_exc->reg_a0 < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_U){
         ptr_exc->status = PRIVINSTR; // errore di permesso
-        trapHandler();
+        //trapHandler();
      }
      else{ //richiesta insesistente
-        trapHandler();
+        //trapHandler();
      }
 }
 
