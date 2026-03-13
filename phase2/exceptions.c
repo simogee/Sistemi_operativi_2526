@@ -63,51 +63,15 @@ void create_process(state_t* ptr_exc){
 }
 
 void terminate_process(state_t* ptr_exc){
-// se PID = 0 elimino il current process (e i suoi figli)
-if (ptr_exc->reg_a2 == 0){ 
-  while(emptyChild(current_process)){
-    pcb_t* child =removeChild(current_process);
-    freePcb(child);
-    process_counter--;
-  }
-  freePcb(current_process);
-  process_counter--;
-  return;
+// se ptr_exc->reg_a1 = 0 allora termino current_process
+if(ptr_exc->reg_a1 == 0){
+    subTree_killer(current_process);
 }
-
-//se pid != 0 bisogna cercare il pcb.
-pcb_t* process_to_rem = findByPid(ptr_exc->reg_a2);
-process_to_rem = outProcQ(&ready_queue,process_to_rem); 
-pcb_t* child_to_rem = NULL; // puntatore che useremo per rimuovere i child
-
-// se lo troviamo sulla readyqueue
-if(process_to_rem != NULL){
-    while(emptyChild(process_to_rem)){
-        child_to_rem = removeChild(process_to_rem);
-        freePcb(child_to_rem);
-        process_counter--;
-    }
-    freePcb(process_to_rem);   
-    process_counter--;
-    return; // vediamo poi i return come vanno gestiti
-    }
-// casi rimasti: è su un semaforo o il pid non esiste.
-process_to_rem = outBlocked(process_to_rem); //check per vedere se è su un semaforo
-if(process_to_rem != NULL){
-    while (emptyChild(process_to_rem))
-    {
-       child_to_rem = removeChild(process_to_rem);
-       freePcb(child_to_rem);
-       process_counter--;
-    }
-    freePcb(process_to_rem);
-    process_counter--;
-    soft_block_counter--; //perchè era su un semaforo
-    return;
+else{ //devo trovare il pcb relativo al pid indicato
+    pcb_t* process_to_kill = findByPid(ptr_exc->reg_a1);
+    subTree_killer(process_to_kill);
 }
-// se arriviamo qui il pid non è valido
-    return; //forse dovremmo gestirlo meglio
-
+return;
 }
 
 
@@ -183,5 +147,37 @@ void syscallHandler(state_t* ptr_exc){
 
 
 /**
+ * Funzione per rimuovere tutto il subtree dato un processo
+ * Preso un processo: check figlio, se esiste richiamiamo subTree_killer su child ricorsivamente una volta che non esiste più un child:
+ *      check se si trova su un semaforo:
+ *              se si allora soft_block_counter --; e rimozione dal semaforo
+ *      check se si trova sulla ready queue:
+ *              rimozione dalla readyqueue;
+ *      check se è il current_process:
+ *              dereferenziamo current_process
  * 
+ *      process_counter-- e liberiamo il pcb
+ * freePcb(processo);     
  */
+
+
+
+
+void subTree_killer(pcb_t* p){
+    while(!emptyChild(p)){
+        pcb_t* child = removeChild(p);
+        subTree_killer(child);
+    }
+    if(p == current_process){
+        current_process = NULL; // per dereferenziare il pcb_t*
+    }
+    else if(p->p_semAdd != NULL){ // si trova su un semaforo
+        outBlocked(p);
+        soft_block_counter--;
+    }
+    else{                        //non si trova su un semaforo check readyqueue 
+        outProcQ(&ready_queue,p);
+    }
+    process_counter--;
+    freePcb(p);
+}
