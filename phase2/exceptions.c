@@ -62,16 +62,27 @@ void create_process(state_t* ptr_exc){
   process_counter++; //questo forse non va ma va chiamato lo scheduler.
 }
 
+
+
+
+/** SYSTEMCALL per terminare i processi */
 void terminate_process(state_t* ptr_exc){
 // se ptr_exc->reg_a1 = 0 allora termino current_process
+// altrimenti cerco il pid relativo.
+
+pcb_t* process_to_kill = NULL;
+
 if(ptr_exc->reg_a1 == 0){
-    subTree_killer(current_process);
+    process_to_kill = current_process; 
 }
-else{ //devo trovare il pcb relativo al pid indicato
-    pcb_t* process_to_kill = findByPid(ptr_exc->reg_a1);
+else{
+    process_to_kill = findByPid(ptr_exc->reg_a1); 
+}
+if(process_to_kill != NULL){ // esiste il processo da uccidere
+    outChild(process_to_kill); // serve per rimuovere il processo dalla lista dei figli di un eventuale padre
     subTree_killer(process_to_kill);
 }
-return;
+    scheduler(); // termine di questa syscall richiama lo scheduler
 }
 
 
