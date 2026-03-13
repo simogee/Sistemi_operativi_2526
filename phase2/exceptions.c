@@ -47,7 +47,8 @@ void create_process(state_t* ptr_exc){
                                 // viene generato un val casuale al p_pid
   if (new_proc == NULL){ // non c'e spazio -> salvo -1 nel registro s0 del padre
     ptr_exc->reg_a0 = -1;
-    return;
+    ptr_exc->pc_epc += WORDLEN;
+    LDST(ptr_exc);
   }
   ptr_exc->reg_a0 = new_proc->p_pid; // c'e' spazio -> salvo il pid del figlio nel reg a0 del padre
   new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio: il padre deve preparare uno state_t da passare al figlio.
@@ -59,7 +60,9 @@ void create_process(state_t* ptr_exc){
   insertChild(current_process, new_proc);
   //nuovo processo va inserito nella testa della readyqueue
   insertProcQ(&ready_queue, new_proc);
-  process_counter++; //questo forse non va ma va chiamato lo scheduler.
+  process_counter++;
+  ptr_exc->pc_epc += WORDLEN;
+  LDST(ptr_exc);
 }
 
 
@@ -78,6 +81,8 @@ if(ptr_exc->reg_a1 == 0){
 else{
     process_to_kill = findByPid(ptr_exc->reg_a1); 
 }
+
+
 if(process_to_kill != NULL){ // esiste il processo da uccidere
     outChild(process_to_kill); // serve per rimuovere il processo dalla lista dei figli di un eventuale padre
     subTree_killer(process_to_kill);
@@ -147,6 +152,11 @@ void Verhogen(state_t* ptr_exc){
 
 
 void DoIO(state_t* ptr_exc){
+
+}
+
+
+void GetCPUTime(state_t* ptr_exc){
 
 }
 void syscallHandler(state_t* ptr_exc){
