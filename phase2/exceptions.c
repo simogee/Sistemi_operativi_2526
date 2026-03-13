@@ -115,7 +115,7 @@ void Passeren(state_t* ptr_exc){
         if(check == 1){
             PANIC();  //non ci sono semafori liberi
         }
-        
+        soft_block_counter++;
         current_process = NULL; //dereferenzio il current process
         scheduler();
     }
@@ -128,6 +128,18 @@ void Verhogen(state_t* ptr_exc){
     //se V diventa positiva ->  sveglio il pcb dal semaforo e lo metto in ready queue
     // se V resta negativa -> incremento e basta
     // poi riprende current 
+    int* semaphore = (int*)ptr_exc->reg_a1;
+    (*semaphore)++;
+    if(*semaphore > 0){
+    pcb_t* process_to_awake = removeBlocked(semaphore);
+        if(process_to_awake != NULL){ // lo rimetto in readyqueue
+            insertProcQ(&ready_queue,process_to_awake);
+            soft_block_counter--;
+        }
+    }
+    // non devo svegliare il processo
+    ptr_exc->pc_epc+=WORDLEN;
+    LDST(ptr_exc);
 }
 
 
