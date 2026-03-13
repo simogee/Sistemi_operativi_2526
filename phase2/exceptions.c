@@ -88,7 +88,7 @@ if(process_to_kill != NULL){ // esiste il processo da uccidere
 
 void Passeren(state_t* ptr_exc){
     //va fatta una p sull'address del semaforo che si trova in a1((semAdd).
-    //se > 0 allora decremento e controllo passato al current_process
+    //se >= 0 allora decremento e controllo passato al current_process
     //se < 0 allora processo bloccato sul semaforo puntato e spostiamo il current_process sulla lista ASL relativa e si chiama scheduler.
     /** Semaforo:
      *  p1->semadd = &device_sem[num]; 
@@ -98,18 +98,25 @@ void Passeren(state_t* ptr_exc){
     (*semaphore)--; //devo decrementare il valore puntato
     
     if(*semaphore >= 0){ //NON bloccante
-        LDST(&current_process->p_s); // viene ricaricato lo stato aggiornato del processo chiamante
+        //devo aggiornare il program counter e ritornare il controllo al current process
+        ptr_exc->pc_epc+=WORDLEN;
+        LDST(ptr_exc);
     }
     else{               //Bloccante
 
+        ptr_exc->pc_epc += WORDLEN; // incremento il program counter di 4 per evitare di fare loop infinito
+        current_process->p_s = *ptr_exc; // salvo lo stato aggiornato sul pcb
+        cpu_t now;
+        STCK(now);
+        current_process->p_time += now - slice_start; //salviamo il empo passato dal dispatch del processo
+
+        //devo inserire il processo nel semaforo
         int check = insertBlocked(semaphore,current_process); //inserisce il processo nella coda del semaforo relativo.
         if(check == 1){
             PANIC();  //non ci sono semafori liberi
         }
         
-        ptr_exc->pc_epc += WORDLEN; // incremento il program counter di 4 per evitare di fare loop infinito
-        current_process->p_s = *ptr_exc; // salvo lo stato aggiornato sul pcb
-        current_process = NULL;
+        current_process = NULL; //dereferenzio il current process
         scheduler();
     }
 
@@ -153,7 +160,7 @@ void syscallHandler(state_t* ptr_exc){
                 create_process(ptr_exc);
                 break;
             case TERMPROCESS:
-                terminate_process();
+                terminate_process(ptr_exc);
                 break;
             case PASSEREN:
             case VERHOGEN:

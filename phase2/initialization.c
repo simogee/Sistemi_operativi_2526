@@ -33,9 +33,9 @@ slice_start=0;
 /* inizializzazione del pass-up Vector la struttura passupvector_t si trova in usr/include/uriscv */
 passupvector_t* pass_up_vector       = (passupvector_t*) PASSUPVECTOR ; // * serve per poter accedere a PASSUPVECTOR
 pass_up_vector->tlb_refill_handler   = (memaddr) uTLB_RefillHandler;
-pass_up_vector->tlb_refill_stackPtr = (memaddr) KERNELSTACK; // top della funzione
-pass_up_vector->exception_handler   = (memaddr) exception_handler;
-pass_up_vector->exception_stackPtr  = (memaddr) KERNELSTACK;
+pass_up_vector->tlb_refill_stackPtr  = (memaddr) KERNELSTACK; // top della funzione
+pass_up_vector->exception_handler    = (memaddr) exception_handler;
+pass_up_vector->exception_stackPtr   = (memaddr) KERNELSTACK;
 
  /*inizializzo strutture phase1*/
  initASL();
