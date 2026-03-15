@@ -171,6 +171,19 @@ void DoIO(state_t* ptr_exc){
         by writing the acknowledge command code in the appropriate device’s device register. 
         */
         /* Bisogna quindi scegliere una convenzione: [0..7] disk [8..15] flash [16..23] eth [24..31] printer. [32..47] terminali [48]-> pseudo_clock_sem*/
+        /* un device e' individuato da un interrupt line(valore 3,4,5) e un device number. Per i terminali anche un valore tx rx per indicare che tipo e'
+            Ho indirizzo di COMMAND del device. da questo devo dedurre la linea e dev num
+            devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
+            to calculate the device number you can use a series of ifs with bitwise AND (&) between the bitmap and the DEVxON constants as conditions.
+            base address per i device: 0x10000054   
+            per i device normali : (base) + 0x4 command
+            per i terminali: 
+            tx: (base) + 0xc
+            rx: (base) + 0x4
+            quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10 indirizzi quindi
+            0x80 è una linea. ora devo contare a quanti indirizzi disto dalla base 0x10000054 e ricavo così la linea di appartenenza poi per capire il deviceno: resto della divisione e conto l'offset con il resto.
+            poi all'indice calcolato della linea devo aggiungere 3 per convenzione.offset    = devBase - 0x10000054; IntLineNo = 3 + (offset / 0x80); DevNo= (offset % 0x80) / 0x10;
+        */
 }
 
 
