@@ -182,7 +182,8 @@ void DoIO(state_t* ptr_exc){
             rx: (base) + 0x4
             quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10 indirizzi quindi
             0x80 è una linea. ora devo contare a quanti indirizzi disto dalla base 0x10000054 e ricavo così la linea di appartenenza poi per capire il deviceno: resto della divisione e conto l'offset con il resto.
-            poi all'indice calcolato della linea devo aggiungere 3 per convenzione.offset    = devBase - 0x10000054; IntLineNo = 3 + (offset / 0x80); DevNo= (offset % 0x80) / 0x10;
+            poi all'indice calcolato della linea devo aggiungere 3 per convenzione.   offset = devBase - 0x10000054; IntLineNo = 3 + (offset / 0x80); DevNo= (offset % 0x80) / 0x10;
+            Numero della linea mi dice a quale blocco di semafori fare riferimento e il numero del device a quale di quelli della linea fare riferimento.
         */
 }
 
