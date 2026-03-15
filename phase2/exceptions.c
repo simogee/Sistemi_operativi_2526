@@ -150,9 +150,27 @@ void Verhogen(state_t* ptr_exc){
     LDST(ptr_exc);
 }
 
-
+//address of the command field in a1 -> P made on the semaphore that the Nucleus maintains for the I/O device indicated by the value in a1
+//always block the Current Process on the ASL(sem qui sono sync)
+//terminal device -> 2 sem (one input and one output)
+//the value to be assigned in a2.
+//
 void DoIO(state_t* ptr_exc){
 
+    //dovremo gestire i device normali e i terminali: nei device normali ritorna in reg_a0 la word dello status, nei terminali si ritorna status+ char inviato o ricevuto
+    // linea 3 disk, 4 flash, 5 ethernet,6 printer. ognuno ha 8 device 32 totali.
+    // linea 7 terminali con 2 sub-device 16 totali
+    // 1 e' pseudoclock
+    /**
+        The Interrupting Devices Bit Map is a read-only five word area located starting from address
+        0x1000.0040. Interrupting Devices Bit Map words have this format: when bit i in word j is set to
+        one then device i attached to interrupt line j + 3 has a pending interrupt, see Table 2. An interrupt
+        pending bit is turned on automatically by the hardware whenever a device’s controller asserts the
+        interrupt line to which it is attached. The interrupt will remain pending –the pending interrupt bit
+        will remain on– until the interrupt is acknowledged. Interrupts for peripheral devices are acknowledged
+        by writing the acknowledge command code in the appropriate device’s device register. 
+        */
+        /* Bisogna quindi scegliere una convenzione: [0..7] disk [8..15] flash [16..23] eth [24..31] printer. [32..47] terminali [48]-> pseudo_clock_sem*/
 }
 
 

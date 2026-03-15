@@ -28,7 +28,7 @@ int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo
 cpu_t slice_start;
 extern void test();
 
-/**funzione da  gcc/libgcc/memcpy.c */
+/**funzione da  gcc/libgcc/memcpy.c usata dal compilatore per copiare */
 void *memcpy(void *dest, const void *src, unsigned int len)
 {
 	char *d = dest;
