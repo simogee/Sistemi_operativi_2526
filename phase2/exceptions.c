@@ -1,7 +1,7 @@
 #include <uriscv/const.h>
 #include <uriscv/types.h>
 #include "kernel.h"
-/** tlb refill da fare o no? presente già in p2test */
+/** tlb refill da fare o no? presente gia' in p2test */
 void exception_handler();
 void syscallHandler();
 void uTLB_RefillHandler();
@@ -23,7 +23,7 @@ void exception_handler(){
 
     if(CAUSE_IS_INT(cause))
     {
-        //interruptHandler(); //questo sarà in un altro file.
+        //interruptHandler(); //questo sara' in un altro file.
     }
     else{
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
@@ -153,6 +153,19 @@ void Verhogen(state_t* ptr_exc){
 //passaren usata all'interno di DoIO. Sempre bloccante
 void block_sync(int* semaddr, state_t* ptr_exc){
     (*semaddr)++;//incremento di 1 il valore del semaforo
+    ptr_exc->pc_epc += WORDLEN;
+    current_process->p_s = *ptr_exc; // salvo lo stato aggiornato sul pcb
+    cpu_t now;
+    STCK(now);
+    current_process->p_time += now - slice_start; //salviamo il empo passato dal dispatch del processo
+    //devo inserire il processo nel semaforo
+    int check = insertBlocked(semaphore,current_process); //inserisce il processo nella coda del semaforo relativo.
+    if(check == 1){
+        PANIC();  //non ci sono semafori liberi
+    }
+    soft_block_counter++;
+    current_process = NULL; //dereferenzio il current process
+    scheduler();
 
 
 }
