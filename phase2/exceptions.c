@@ -152,7 +152,8 @@ void Verhogen(state_t* ptr_exc){
 
 //passaren usata all'interno di DoIO. Sempre bloccante
 void block_sync(int* semaddr, state_t* ptr_exc){
-    (*semaddr)++;//incremento di 1 il valore del semaforo
+
+    (*semaddr)--;//incremento di 1 il valore del semaforo
     ptr_exc->pc_epc += WORDLEN;
     current_process->p_s = *ptr_exc; // salvo lo stato aggiornato sul pcb
     cpu_t now;
@@ -166,8 +167,6 @@ void block_sync(int* semaddr, state_t* ptr_exc){
     soft_block_counter++;
     current_process = NULL; //dereferenzio il current process
     scheduler();
-
-
 }
 
 //address of the command field in a1 -> P made on the semaphore that the Nucleus maintains for the I/O device indicated by the value in a1
