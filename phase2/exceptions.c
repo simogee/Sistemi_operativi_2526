@@ -160,7 +160,7 @@ void block_sync(int* semaddr, state_t* ptr_exc){
     STCK(now);
     current_process->p_time += now - slice_start; //salviamo il empo passato dal dispatch del processo
     //devo inserire il processo nel semaforo
-    int check = insertBlocked(semaphore,current_process); //inserisce il processo nella coda del semaforo relativo.
+    int check = insertBlocked(semaddr,current_process); //inserisce il processo nella coda del semaforo relativo.
     if(check == 1){
         PANIC();  //non ci sono semafori liberi
     }
@@ -200,11 +200,22 @@ void DoIO(state_t* ptr_exc){
             per i terminali: 
             tx: (base) + 0xc
             rx: (base) + 0x4
-            quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10 indirizzi quindi
+            quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10(c) indirizzi quindi
             0x80 è una linea. ora devo contare a quanti indirizzi disto dalla base 0x10000054 e ricavo così la linea di appartenenza poi per capire il deviceno: resto della divisione e conto l'offset con il resto.
             poi all'indice calcolato della linea devo aggiungere 3 per convenzione.   offset = devBase - 0x10000054; IntLineNo = 3 + (offset / 0x80); DevNo= (offset % 0x80) / 0x10;
             Numero della linea mi dice a quale blocco di semafori fare riferimento e il numero del device a quale di quelli della linea fare riferimento.
+
         */
+        memaddr commandreg = ptr_exc->reg_a1;
+        memaddr offset = (commandreg - 0x10000054)  // ritorna la posizione relativa all'indirizzo base.
+        //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
+        memaddr inneroffset = offset % 0x10;  //quanto sono distante dall'inzio del device.
+        memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
+        memaddr devoffset = (devbase - 0x10000054); // troviamo l'offset del device 
+        int IntlineNo = 3 + (devoffset / 0x80);
+
+        
+
 }
 
 
