@@ -325,8 +325,32 @@ void subTree_killer(pcb_t* p){
 
 
 // ritorna l'indice del semaforo data la line e il numero.
+/*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
 int sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     //switch case per line: se 3,4,5,6 allora cerco solo la posizione dato devNo e lo associo ad un semaforo
     //se 7 allora devo capire se è un dev di ricezione o di invio.
+
+    switch(IntlineNo){
+        //casi device normali
+        case 3: 
+        //offset 0
+        return &device_sem[devNo];
+        case 4:
+        //offset 8
+        return &device_sem[devNo+8];
+        case 5:
+        //offset 16
+        return &device_sem[devNo+16];
+        case 6:
+        //offset 24
+        return &device_sem[devNo+24];
+
+
+
+        //qui bisogna distinguere in che casistica ci troviamo e servirà inneroffset
+        case 7:
+        //offset 32
+
+    }
 
 }
