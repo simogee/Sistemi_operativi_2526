@@ -153,7 +153,7 @@ void Verhogen(state_t* ptr_exc){
 //passaren usata all'interno di DoIO. Sempre bloccante
 void block_sync(int* semaddr, state_t* ptr_exc){
 
-    (*semaddr)--;//incremento di 1 il valore del semaforo
+    (*semaddr)--;//decremento di 1 il valore del semaforo
     ptr_exc->pc_epc += WORDLEN;
     current_process->p_s = *ptr_exc; // salvo lo stato aggiornato sul pcb
     cpu_t now;
@@ -181,15 +181,6 @@ void DoIO(state_t* ptr_exc){
     // linea 3 disk, 4 flash, 5 ethernet,6 printer. ognuno ha 8 device 32 totali.
     // linea 7 terminali con 2 sub-device 16 totali
     // 1 e' pseudoclock
-    /**
-        The Interrupting Devices Bit Map is a read-only five word area located starting from address
-        0x1000.0040. Interrupting Devices Bit Map words have this format: when bit i in word j is set to
-        one then device i attached to interrupt line j + 3 has a pending interrupt, see Table 2. An interrupt
-        pending bit is turned on automatically by the hardware whenever a device’s controller asserts the
-        interrupt line to which it is attached. The interrupt will remain pending –the pending interrupt bit
-        will remain on– until the interrupt is acknowledged. Interrupts for peripheral devices are acknowledged
-        by writing the acknowledge command code in the appropriate device’s device register. 
-        */
         /* Bisogna quindi scegliere una convenzione: [0..7] disk [8..15] flash [16..23] eth [24..31] printer. [32..47] terminali [48]-> pseudo_clock_sem*/
         /* un device e' individuato da un interrupt line(valore 3,4,5) e un device number. Per i terminali anche un valore tx rx per indicare che tipo e'
             Ho indirizzo di COMMAND del device. da questo devo dedurre la linea e dev num
@@ -206,20 +197,32 @@ void DoIO(state_t* ptr_exc){
             Numero della linea mi dice a quale blocco di semafori fare riferimento e il numero del device a quale di quelli della linea fare riferimento.
 
         */
+        
         memaddr commandreg = ptr_exc->reg_a1;
-        memaddr offset = (commandreg - 0x10000054)  // ritorna la distanza dall'indirizzo base dei devices.
+        
+        memaddr offset = (commandreg - 0x10000054);  // ritorna la distanza dall'indirizzo base dei devices.
         //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
         memaddr inneroffset = offset % 0x10;  //quanto sono distante dall'inzio del device.
+        if(inneroffset != 0x4 && inneroffset != 0xC){
+            //errore
+            PANIC();
+        }
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
         memaddr devoffset = (devbase - 0x10000054); // troviamo l'offset del device 
 
         int IntlineNo = 3 + (devoffset / 0x80); // trovata la linea ora 
+        if(IntlineNo < 3 || IntlineNo > 7){
+            PANIC();
+        }
         int devNo = (devoffset % 0x80) / 0x10; // trovato il device number.
         // ora bisogna mappare correttamente il semaforo alla linea e poi al device corretto
         /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
-    
-
-        
+        int* semadr = sem_index_from_dev(IntlineNo,devNo, inneroffset); // ritorna il semaforo su cui verrà fatta la P
+        if(semadr == NULL){ 
+            PANIC();
+        }
+        *((unsigned int*)commandreg) = ptr_exc->reg_a2;
+        block_sync(semadr,ptr_exc);
 
 }
 
@@ -326,7 +329,7 @@ void subTree_killer(pcb_t* p){
 
 // ritorna l'indice del semaforo data la line e il numero.
 /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
-int sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
+int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     //switch case per line: se 3,4,5,6 allora cerco solo la posizione dato devNo e lo associo ad un semaforo
     //se 7 allora devo capire se è un dev di ricezione o di invio.
 
@@ -346,11 +349,20 @@ int sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
         return &device_sem[devNo+24];
 
 
-
-        //qui bisogna distinguere in che casistica ci troviamo e servirà inneroffset
+        //qui bisogna distinguere in che casistica ci troviamo e servira' inneroffset
         case 7:
-        //offset 32
-
+        //offset 32 o 40
+        if(inneroffset == 0x4){ // si tratta di un rx
+            return &device_sem[devNo+32];
+        }
+        else if(inneroffset == 0xC){ // si tratta di un tx
+            return &device_sem[devNo+40]; 
+        }
+        else{// errore 
+            return NULL;
+        }
+        default:
+            return NULL; 
     }
 
 }
