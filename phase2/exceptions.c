@@ -150,11 +150,19 @@ void Verhogen(state_t* ptr_exc){
     LDST(ptr_exc);
 }
 
+//passaren usata all'interno di DoIO. Sempre bloccante
+void block_sync(int* semaddr, state_t* ptr_exc){
+    (*semaddr)++;//incremento di 1 il valore del semaforo
+
+
+}
+
 //address of the command field in a1 -> P made on the semaphore that the Nucleus maintains for the I/O device indicated by the value in a1
 //always block the Current Process on the ASL(sem qui sono sync)
 //terminal device -> 2 sem (one input and one output)
 //the value to be assigned in a2.
-//
+/**
+Doio si occupa di scrivere il comando sul registro del device e poi bloccare il processo sul semaforo relativo al device. Una volta salvato tutto con pc aggiornato richiama lo scheduler. */
 void DoIO(state_t* ptr_exc){
 
     //dovremo gestire i device normali e i terminali: nei device normali ritorna in reg_a0 la word dello status, nei terminali si ritorna status+ char inviato o ricevuto
@@ -258,7 +266,7 @@ void syscallHandler(state_t* ptr_exc){
  *              se si allora soft_block_counter --; e rimozione dal semaforo
  *      check se si trova sulla ready queue:
  *              rimozione dalla readyqueue;
- *      check se è il current_process:
+ *      check se e' il current_process:
  *              dereferenziamo current_process
  * 
  *      process_counter-- e liberiamo il pcb
