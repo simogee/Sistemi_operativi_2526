@@ -216,7 +216,7 @@ void DoIO(state_t* ptr_exc){
         int IntlineNo = 3 + (devoffset / 0x80); // trovata la linea ora 
         int devNo = (devoffset % 0x80) / 0x10; // trovato il device number.
         // ora bisogna mappare correttamente il semaforo alla linea e poi al device corretto
-        /*linea 3:[0..7] linea 4:disk [8..15] linea 5:flash [16..23] linea 6:eth [24..31] linea 7:printer [32..47] semaforo[48] e' lo pseudoclock*/
+        /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
     
 
         
@@ -325,6 +325,8 @@ void subTree_killer(pcb_t* p){
 
 
 // ritorna l'indice del semaforo data la line e il numero.
-int sem_index_from_dev(int IntlineNo, int devNo ){
+int sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
+    //switch case per line: se 3,4,5,6 allora cerco solo la posizione dato devNo e lo associo ad un semaforo
+    //se 7 allora devo capire se è un dev di ricezione o di invio.
 
 }
