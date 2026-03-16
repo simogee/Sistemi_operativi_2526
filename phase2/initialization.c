@@ -24,7 +24,7 @@ int soft_block_counter; //Quanti processi "Blocked" (ASL)
 struct list_head ready_queue; // coda dei processi
 pcb_t* current_process;
 int device_sem [SEMDEVLEN]; // un sem per device + 1 per pseudo-clock
-int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo sarà solo per lo pseudoclock
+int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo sara+ solo per lo pseudoclock
 cpu_t slice_start;
 extern void test();
 

@@ -226,8 +226,28 @@ void DoIO(state_t* ptr_exc){
 
 }
 
-
+//ritornare in a0 il valore nel pcb_t in p_time
+// non conta il tempo accumulato serve solo per sapere quanto tempo e' passato da inizio del quanto. Storia diversa se il processo era bloccato.
 void GetCPUTime(state_t* ptr_exc){
+    cpu_t now;
+    STCK(now);
+    ptr_exc->reg_a0 =current_process->p_time + now - slice_start;
+    ptr_exc->pc_epc+=WORDLEN;
+    LDST(ptr_exc);
+}
+//questo fa una P sul semaforo di pseudoclock: posizone 48
+void waitForClock(state_t* ptr_exc){
+    block_sync(pseudo_clock_sem, ptr_exc);
+}
+unsigned int* GetSupportData(state_t* ptr_exc){
+    ptr_exc->pc_epc+=WORDLEN;
+    return (unsigned int)current_process->p_supportStruct; // se e' nulla ritornera' NULL
+}
+
+//ritorna il pid del padre del current process. pid del processo corrente se non c'e' un padre. ritorno in a0
+void GetProcessID(state_t* ptr_exc)
+
+void Yield(state_t* ptr_exc){
 
 }
 void syscallHandler(state_t* ptr_exc){
