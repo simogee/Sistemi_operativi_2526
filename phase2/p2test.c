@@ -163,9 +163,9 @@ void test() {
         print("Error: wrong semaphore value\n");
         PANIC();
     }
-   bp();
+  // bp();
    
-    print("p1 v(sem_testsem)\n");
+   // print("p1 v(sem_testsem)\n");
 
     /* set up states of the other processes */
 
@@ -198,7 +198,7 @@ void test() {
     p4state.pc_epc = (memaddr)p4;
     p4state.status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     p4state.mie = MIE_ALL;
-
+ 
     STST(&p5state);
     p5Stack = p5state.reg_sp = p4state.reg_sp - (2 * QPAGE); /* because there will 2 p4 running*/
     p5state.pc_epc = (memaddr)p5;
@@ -210,7 +210,7 @@ void test() {
     p6state.pc_epc = (memaddr)p6;
     p6state.status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     p6state.mie = MIE_ALL;
-
+//bp();  fun qui tutto ok
     STST(&p7state);
     p7state.reg_sp = p6state.reg_sp - QPAGE;
     p7state.pc_epc = (memaddr)p7;
@@ -270,12 +270,12 @@ void test() {
     p10state.pc_epc = (memaddr)p10;
     p10state.status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     p10state.mie = MIE_ALL;
-
+  
       /* create process p2 */
     p2pid = SYSCALL(CREATEPROCESS, (int)&p2state, PROCESS_PRIO_LOW, (int)NULL); /* start p2     */
-
-    print("p2 was started\n");
-    bp();                                                                                                        //BP
+    
+    //print("p2 was started\n");
+    //bp(); // fino a qui funziona se togli print                                                                                                     //BP
     SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
 
     SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */

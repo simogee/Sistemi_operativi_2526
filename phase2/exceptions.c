@@ -5,7 +5,7 @@
 void exception_handler();
 void syscallHandler();
 void uTLB_RefillHandler();
-
+int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
 
 /*void uTLB_RefillHandler() {
 setENTRYHI(0x80000000);
@@ -236,19 +236,35 @@ void GetCPUTime(state_t* ptr_exc){
     LDST(ptr_exc);
 }
 //questo fa una P sul semaforo di pseudoclock: posizone 48
-void waitForClock(state_t* ptr_exc){
+void WaitForClock(state_t* ptr_exc){
     block_sync(pseudo_clock_sem, ptr_exc);
 }
-unsigned int* GetSupportData(state_t* ptr_exc){
+void GetSupportData(state_t* ptr_exc){
+    ptr_exc->reg_a0 = (memaddr)current_process->p_supportStruct; // se e' nulla ritornera' NULL
     ptr_exc->pc_epc+=WORDLEN;
-    return (unsigned int)current_process->p_supportStruct; // se e' nulla ritornera' NULL
+    LDST(ptr_exc);
 }
 
 //ritorna il pid del padre del current process. pid del processo corrente se non c'e' un padre. ritorno in a0
-void GetProcessID(state_t* ptr_exc)
+void GetProcessID(state_t* ptr_exc){
+    pcb_t* parent= current_process->p_parent;
+    ptr_exc->pc_epc+= WORDLEN;
 
+    if(ptr_exc->reg_a1 == 0){
+        ptr_exc->reg_a0 = current_process->p_pid;
+    }
+    else{
+        if(parent == NULL)
+            ptr_exc->reg_a0 = 0;
+        else
+            ptr_exc->reg_a0 = parent->p_pid;
+    }
+    LDST(ptr_exc);
+}
+    //obbliga il processo corrente ad abbandonare la cpu. Se ci sono altri processi in coda e l'ex current ha la max prio non viene comunque eseguito subito
+    //se invece e' l'unico processo allora viene eseguito
 void Yield(state_t* ptr_exc){
-
+    return;
 }
 void syscallHandler(state_t* ptr_exc){
     /**
@@ -288,11 +304,17 @@ void syscallHandler(state_t* ptr_exc){
                 Verhogen(ptr_exc);
                 break;
             case DOIO:
+                DoIO(ptr_exc);
             case GETTIME:
+                GetCPUTime(ptr_exc);
             case CLOCKWAIT:
+                WaitForClock(ptr_exc);
             case GETSUPPORTPTR:
+                GetSupportData(ptr_exc);
             case GETPROCESSID:
+                GetProcessID(ptr_exc);
             case YIELD:
+                Yield(ptr_exc);
             default:
                 //trapHandler();
         }
