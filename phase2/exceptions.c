@@ -263,8 +263,28 @@ void GetProcessID(state_t* ptr_exc){
 }
     //obbliga il processo corrente ad abbandonare la cpu. Se ci sono altri processi in coda e l'ex current ha la max prio non viene comunque eseguito subito
     //se invece e' l'unico processo allora viene eseguito
+    //controllo se la coda e' vuota. se non e' vuota prendo il pcb del primo nella coda rimetto in coda il mio processo corrente e carico quello preso.(schedulo manualmente)
+    //se la coda è vuota scheduler automatico
 void Yield(state_t* ptr_exc){
-    return;
+    ptr_exc->pc_epc+=WORDLEN;
+    cpu_t now;
+    STCK(now);
+    current_process->p_time += now- slice_start; // salvo il tempo
+    current_process->p_s = *ptr_exc; // salvo lo stato aggiornato
+    pcb_t* y_proc = current_process;
+    current_process = NULL; //libero lo spazio del current proces
+    if(emptyProcQ(&ready_queue)){//check se la coda e' vuota
+        insertProcQ(&ready_queue,y_proc);
+        scheduler();
+   }else{
+        pcb_t* substitute_proc = removeProcQ(&ready_queue);
+        insertProcQ(&ready_queue,y_proc);
+        current_process = substitute_proc;
+        //schedulo manualmente
+        STCK(slice_start); 
+        setTIMER(TIMESLICE);
+        LDST(&current_process->p_s);
+   }
 }
 void syscallHandler(state_t* ptr_exc){
     /**
