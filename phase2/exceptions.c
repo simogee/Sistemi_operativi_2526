@@ -200,19 +200,24 @@ void DoIO(state_t* ptr_exc){
             per i terminali: 
             tx: (base) + 0xc
             rx: (base) + 0x4
-            quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10(c) indirizzi quindi
+            quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10 indirizzi quindi
             0x80 è una linea. ora devo contare a quanti indirizzi disto dalla base 0x10000054 e ricavo così la linea di appartenenza poi per capire il deviceno: resto della divisione e conto l'offset con il resto.
             poi all'indice calcolato della linea devo aggiungere 3 per convenzione.   offset = devBase - 0x10000054; IntLineNo = 3 + (offset / 0x80); DevNo= (offset % 0x80) / 0x10;
             Numero della linea mi dice a quale blocco di semafori fare riferimento e il numero del device a quale di quelli della linea fare riferimento.
 
         */
         memaddr commandreg = ptr_exc->reg_a1;
-        memaddr offset = (commandreg - 0x10000054)  // ritorna la posizione relativa all'indirizzo base.
+        memaddr offset = (commandreg - 0x10000054)  // ritorna la distanza dall'indirizzo base dei devices.
         //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
         memaddr inneroffset = offset % 0x10;  //quanto sono distante dall'inzio del device.
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
         memaddr devoffset = (devbase - 0x10000054); // troviamo l'offset del device 
-        int IntlineNo = 3 + (devoffset / 0x80);
+
+        int IntlineNo = 3 + (devoffset / 0x80); // trovata la linea ora 
+        int devNo = (devoffset % 0x80) / 0x10; // trovato il device number.
+        // ora bisogna mappare correttamente il semaforo alla linea e poi al device corretto
+        /*linea 3:[0..7] linea 4:disk [8..15] linea 5:flash [16..23] linea 6:eth [24..31] linea 7:printer [32..47] semaforo[48] e' lo pseudoclock*/
+    
 
         
 
@@ -316,4 +321,10 @@ void subTree_killer(pcb_t* p){
     }
     process_counter--;
     freePcb(p);
+}
+
+
+// ritorna l'indice del semaforo data la line e il numero.
+int sem_index_from_dev(int IntlineNo, int devNo ){
+
 }
