@@ -281,7 +281,6 @@ void Yield(state_t* ptr_exc){
         insertProcQ(&ready_queue,y_proc);
         current_process = substitute_proc;
         //schedulo manualmente
-        
         STCK(slice_start); 
         setTIMER(TIMESLICE);
         LDST(&current_process->p_s);
