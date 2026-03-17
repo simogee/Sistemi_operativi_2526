@@ -38,9 +38,40 @@ void interruptHandler(state_t* ptr_exc){
         case IL_TERMINAL:
         intline = 7;
         break;
+        //caso in cui arriva un valore non riconosciuto
         default:
-        intline = -1;
-        break;
+        PANIC();
     }
     //ora abbiamo la linea in cui e' avvenuto un interrupt.
+    //bisogna trovare il device che lo ha invocato.
+    //lower line and device indica priorita'
+
+    //caso PLT
+    /**ACK  per interrupt con loading timer usando setTIMER,
+     * Copy the processor state of the current cpu at the time of the exception into current process -> p_s
+     * place current process in readyqueue e rendi current process = NULL
+     * chiama lo scheduler
+    
+    */
+
+    //caso INTERVAL TIMER
+    //**
+    // ACK interrupt load intervaltimer 100ms(PSECONDS),LDIT(PSECONDS)
+    // Unblock all PCBs waiting a pseudo-clock tick e put in readyqueue.  pseudo_clock_sem= [48] Fai una funzione di sblocco e decremento di soft_block_counter
+    // return control to current process if exists LDST(ptr_exc); 
+    //  */
+
+
+    //caso Device-generico 
+    // Va individuato il device che ha il pending interrupt, calcolato il device address base
+    // salvare lo status code
+    // scrivere ACK nel registro command del device
+    // Fare una V sul semaforo relativo al device 
+    // salvare lo status code nel nuovo pcb registro a0
+    // inserire il pcb appena sbloccato nella readyqueue
+    // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
+
+
+    
+    
 }
