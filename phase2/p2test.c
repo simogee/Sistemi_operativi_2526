@@ -275,25 +275,25 @@ void test() {
     p2pid = SYSCALL(CREATEPROCESS, (int)&p2state, PROCESS_PRIO_LOW, (int)NULL); /* start p2     */
     
     //print("p2 was started\n");
-    //bp(); // fino a qui funziona se togli print                                                                                                     //BP
+    
     SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
-
-    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */
+    //bp(); // fino a qui funziona se togli print                                                                                                     //BP
+    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */ //qui si ferma e il valore del semaforo è effettivamente -1 
 
     /* make sure we really blocked */
     if (p1p2synch == 0) {
-        print("error: p1/p2 synchronization bad\n");
+        //print("error: p1/p2 synchronization bad\n");
     }
-
+    bp();
     p3pid = SYSCALL(CREATEPROCESS, (int)&p3state, PROCESS_PRIO_LOW, (int)NULL); /* start p3     */
-
-    print("p3 is started\n");
+   
+    //print("p3 is started\n");
 
     SYSCALL(PASSEREN, (int)&sem_endp3, 0, 0); /* P(sem_endp3)     */
 
     SYSCALL(CREATEPROCESS, (int)&hp_p1state, 10, (int)NULL);
     SYSCALL(CREATEPROCESS, (int)&hp_p2state, PROCESS_PRIO_HIGH, (int)NULL);
-
+   
     p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, PROCESS_PRIO_LOW, (int)NULL); /* start p4     */
 
     pFiveSupport.sup_exceptContext[GENERALEXCEPT].stackPtr = (int)p5Stack;

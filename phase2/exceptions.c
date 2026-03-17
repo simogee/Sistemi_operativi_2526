@@ -44,7 +44,7 @@ void create_process(state_t* ptr_exc){
   pcb_t* new_proc = allocPcb(); // Nota: di defult:
                                 // p_time = 0
                                 // p_semAdd = NULL
-                                // viene generato un val casuale al p_pid
+                                // viene generato un valore di p_pid
   if (new_proc == NULL){ // non c'e spazio -> salvo -1 nel registro s0 del padre
     ptr_exc->reg_a0 = -1;
     ptr_exc->pc_epc += WORDLEN;
@@ -52,11 +52,11 @@ void create_process(state_t* ptr_exc){
   }
   ptr_exc->reg_a0 = new_proc->p_pid; // c'e' spazio -> salvo il pid del figlio nel reg a0 del padre
   new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio: il padre deve preparare uno state_t da passare al figlio.
-  if ((support_t*)ptr_exc->reg_a3 == NULL){
-    new_proc->p_supportStruct = NULL;
-  }else{
-    new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
-  }
+  new_proc->p_prio =  ptr_exc->reg_a2;
+ 
+  new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
+
+  
   insertChild(current_process, new_proc);
   //nuovo processo va inserito nella testa della readyqueue
   insertProcQ(&ready_queue, new_proc);
@@ -121,8 +121,7 @@ void Passeren(state_t* ptr_exc){
         int check = insertBlocked(semaphore,current_process); //inserisce il processo nella coda del semaforo relativo.
         if(check == 1){
             PANIC();  //non ci sono semafori liberi
-        }
-        soft_block_counter++;
+        } 
         current_process = NULL; //dereferenzio il current process
 
         scheduler();
@@ -138,11 +137,11 @@ void Verhogen(state_t* ptr_exc){
     // poi riprende current 
     int* semaphore = (int*)ptr_exc->reg_a1;
     (*semaphore)++;
-    if(*semaphore > 0){
+    if(*semaphore <= 0){ //c'era un processo in attesa
     pcb_t* process_to_awake = removeBlocked(semaphore);
         if(process_to_awake != NULL){ // lo rimetto in readyqueue
             insertProcQ(&ready_queue,process_to_awake);
-            soft_block_counter--;
+            //soft_block_counter--;
         }
     }
     // non devo svegliare il processo

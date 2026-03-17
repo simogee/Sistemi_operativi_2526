@@ -66,7 +66,7 @@ void interruptHandler(state_t* ptr_exc){
     // Va individuato il device che ha il pending interrupt, calcolato il device address base
     // salvare lo status code
     // scrivere ACK nel registro command del device
-    // Fare una V sul semaforo relativo al device 
+    // Fare una V sul semaforo relativo al device
     // salvare lo status code nel nuovo pcb registro a0
     // inserire il pcb appena sbloccato nella readyqueue
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler

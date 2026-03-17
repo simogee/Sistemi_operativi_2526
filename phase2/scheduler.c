@@ -5,7 +5,7 @@ void scheduler(){
   if (!emptyProcQ(&ready_queue)){
 
   current_process = removeProcQ(&ready_queue); // rimuovo il PCB dalla testa dei ready queue e lo metto come processo corrente (inizio a eseguire il processo)
-  process_counter--;
+ 
   setTIMER(TIMESLICE);
   STCK(slice_start); // legge il tempo corrente del clock
   LDST(&current_process->p_s);
