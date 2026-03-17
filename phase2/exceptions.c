@@ -19,11 +19,11 @@ void subTree_killer(pcb_t* p);
 void exception_handler(){
 
     state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
-    unsigned int cause = getCAUSE();
+    unsigned int cause = ptr_exc->cause;//getCAUSE();
 
     if(CAUSE_IS_INT(cause))
     {
-        //interruptHandler(); //questo sara' in un altro file.
+        //interruptHandler(ptr_exc); //questo sara' in un altro file.
     }
     else{
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
