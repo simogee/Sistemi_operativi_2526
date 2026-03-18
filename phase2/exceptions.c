@@ -19,7 +19,7 @@ void subTree_killer(pcb_t* p);
 void exception_handler(){
 
     state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
-    unsigned int cause = ptr_exc->cause;//getCAUSE();
+    unsigned int cause = getCAUSE();
 
     if(CAUSE_IS_INT(cause))
     {
