@@ -208,11 +208,11 @@ void DoIO(state_t* ptr_exc){
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
         memaddr devoffset = (devbase - START_DEVREG); // troviamo l'offset del device 
 
-        int IntlineNo = 3 + (devoffset / 0x80); // trovata la linea ora 
+        int IntlineNo = 3 + (devoffset / DEVREGSIZE*DEVPERINT); // trovata la linea ora 
         if(IntlineNo < 3 || IntlineNo > 7){
             PANIC();
         }
-        int devNo = (devoffset % 0x80) / 0x10; // trovato il device number.
+        int devNo = (devoffset %  DEVREGSIZE*DEVPERINT) / DEVREGSIZE; // trovato il device number.(DEVREGSIZE è size di un device e DEVPERINT = numero di device per interrupt line)
         // ora bisogna mappare correttamente il semaforo alla linea e poi al device corretto
         /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
         int* semadr = sem_index_from_dev(IntlineNo,devNo, inneroffset); // ritorna il semaforo su cui verrà fatta la P

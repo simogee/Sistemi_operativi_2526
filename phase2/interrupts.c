@@ -54,7 +54,13 @@ void interruptHandler(state_t* ptr_exc){
     
     */
    if(intline = 1){
-    
+    setTIMER(TIMESLICE);
+    //bisogna copiare lo stato del processore nello stato del current process
+    current_process->p_s = *ptr_exc;
+    //pongo current process nella ready_queue;
+    insertProcQ(&ready_queue,current_process);
+    current_process = NULL;
+    scheduler();
    }
 
     //caso INTERVAL TIMER
@@ -64,7 +70,9 @@ void interruptHandler(state_t* ptr_exc){
     // return control to current process if exists LDST(ptr_exc); 
     //  */
    else if(intline = 2){
-
+    //ack
+    LDIT(PSECOND);
+    //funzione per liberare la coda sull'indirizzo dello pseudo_clock_sem e mettere i processi in readyqueue. Qui forse soft_block_counter va decrementato.
    }
 
     //caso Device-generico 
@@ -75,7 +83,7 @@ void interruptHandler(state_t* ptr_exc){
     // salvare lo status code nel nuovo pcb registro a0
     // inserire il pcb appena sbloccato nella readyqueue
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
-   else if(intline < 2 && intline <=7){
+   else if(intline > 2 && intline <=7){
 
    }
 
