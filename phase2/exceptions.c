@@ -186,11 +186,11 @@ void DoIO(state_t* ptr_exc){
             devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
             to calculate the device number you can use a series of ifs with bitwise AND (&) between the bitmap and the DEVxON constants as conditions.
             base address per i device: 0x10000054   
-            per i device normali : (base) + 0x4 command
+            per i device normali : (base) + 0x04 command
             per i terminali: 
-            tx: (base) + 0xc
-            rx: (base) + 0x4
-            quindi se sottraggo 0x4 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10 indirizzi quindi
+            tx: (base) + 0x0c
+            rx: (base) + 0x04
+            quindi se sottraggo 0x04 per un device normale ottengo l'indirizzo base del device. con l'indirizzo base devo trovare un modo per indicare la linea: ogni device occupa 0x10 indirizzi quindi
             0x80 è una linea. ora devo contare a quanti indirizzi disto dalla base 0x10000054 e ricavo così la linea di appartenenza poi per capire il deviceno: resto della divisione e conto l'offset con il resto.
             poi all'indice calcolato della linea devo aggiungere 3 per convenzione.   offset = devBase - 0x10000054; IntLineNo = 3 + (offset / 0x80); DevNo= (offset % 0x80) / 0x10;
             Numero della linea mi dice a quale blocco di semafori fare riferimento e il numero del device a quale di quelli della linea fare riferimento.
@@ -202,7 +202,7 @@ void DoIO(state_t* ptr_exc){
         memaddr offset = (commandreg - START_DEVREG);  // ritorna la distanza dall'indirizzo base dei devices.
         //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
         memaddr inneroffset = offset % START_DEVREG;  //quanto sono distante dall'inzio del device.
-        if(inneroffset != 0x4 && inneroffset != 0xC){
+        if(inneroffset != 0x04 && inneroffset != 0x0C){
             //errore
             PANIC();
         }
@@ -413,10 +413,10 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
         //qui bisogna distinguere in che casistica ci troviamo e servira' inneroffset
         case 7:
         //offset 32 o 40
-        if(inneroffset == 0x4){ // si tratta di un rx
+        if(inneroffset == 0x04){ // si tratta di un rx
             return &device_sem[devNo+32];
         }
-        else if(inneroffset == 0xC){ // si tratta di un tx
+        else if(inneroffset == 0x0C){ // si tratta di un tx
             return &device_sem[devNo+40]; 
         }
         else{// errore 

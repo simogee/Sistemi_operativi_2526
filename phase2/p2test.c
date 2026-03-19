@@ -158,6 +158,7 @@ void test() {
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
+
 bp();
     if (sem_testsem != 0) {
         print("Error: wrong semaphore value\n");
@@ -165,7 +166,7 @@ bp();
     }
 bp();
    
-    print("p1 v(sem_testsem)\n"); //si blocca dopo la prima p
+    //print("p1 v(sem_testsem)\n"); //si blocca dopo la prima p
 bp();
     /* set up states of the other processes */
 
@@ -277,8 +278,8 @@ bp();
     //print("p2 was started\n");
     
     SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
-//bp(); // fino a qui funziona se togli print                                                                                                     //BP
-    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */ //qui si ferma e il valore del semaforo è effettivamente -1 
+//bp(); // fino a qui funziona se togli print                                                  
+    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */ //qui si ferma e il valore del semaforo è effettivamente -1 ma crasha.
 
     /* make sure we really blocked */
     if (p1p2synch == 0) {

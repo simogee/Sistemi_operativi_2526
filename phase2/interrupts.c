@@ -86,12 +86,12 @@ void interruptHandler(state_t* ptr_exc){
     // Va individuato il device che ha il pending interrupt, calcolato il device address base
     // salvare lo status code
     // scrivere ACK nel registro command del device
-    // Fare una V sul semaforo relativo al device
+    // Fare una V sul semaforo relativo al device fatto.
     // salvare lo status code nel nuovo pcb registro a0
     // inserire il pcb appena sbloccato nella readyqueue
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
-   else if(intline > 2 && intline <=7){
-
+   else if(intline > 2 && intline <8){ //ahah conogelato
+    //definisci per linea la bitmap su dove fare il & per trovare il device
    }
 
    else{
@@ -116,5 +116,14 @@ void unblock_pseudoclock(){
             soft_block_counter--;
         }
     }
+
+}
+pcb_t* unblock_devicesem(int* semaddr){
+    pcb_t* blocked_process = removeBlocked(semaddr);
+    if(blocked_process == NULL){
+        PANIC();
+    }
+    soft_block_counter--;
+    return blocked_process;
 
 }
