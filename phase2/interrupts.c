@@ -53,6 +53,9 @@ void interruptHandler(state_t* ptr_exc){
      * chiama lo scheduler
     
     */
+   if(intline = 1){
+    
+   }
 
     //caso INTERVAL TIMER
     //**
@@ -60,7 +63,9 @@ void interruptHandler(state_t* ptr_exc){
     // Unblock all PCBs waiting a pseudo-clock tick e put in readyqueue.  pseudo_clock_sem= [48] Fai una funzione di sblocco e decremento di soft_block_counter
     // return control to current process if exists LDST(ptr_exc); 
     //  */
+   else if(intline = 2){
 
+   }
 
     //caso Device-generico 
     // Va individuato il device che ha il pending interrupt, calcolato il device address base
@@ -70,7 +75,13 @@ void interruptHandler(state_t* ptr_exc){
     // salvare lo status code nel nuovo pcb registro a0
     // inserire il pcb appena sbloccato nella readyqueue
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
+   else if(intline < 2 && intline <=7){
 
+   }
+
+   else{
+    PANIC();
+   }
 
     
     

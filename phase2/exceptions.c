@@ -123,7 +123,7 @@ void Passeren(state_t* ptr_exc){
             PANIC();  //non ci sono semafori liberi
         } 
         current_process = NULL; //dereferenzio il current process
-
+soft_block_counter++;
         scheduler();
     }
 
@@ -132,8 +132,7 @@ void Passeren(state_t* ptr_exc){
 void Verhogen(state_t* ptr_exc){
     //physical address sempre in a1
     //NON BLOCCANTE
-    //se V diventa positiva ->  sveglio il pcb dal semaforo e lo metto in ready queue
-    // se V resta negativa -> incremento e basta
+    //se semaphore dopo incremento è 0 o positivo allora c'era un processo bloccato e lo sblocco.
     // poi riprende current 
     int* semaphore = (int*)ptr_exc->reg_a1;
     (*semaphore)++;
@@ -141,7 +140,7 @@ void Verhogen(state_t* ptr_exc){
     pcb_t* process_to_awake = removeBlocked(semaphore);
         if(process_to_awake != NULL){ // lo rimetto in readyqueue
             insertProcQ(&ready_queue,process_to_awake);
-            //soft_block_counter--;
+soft_block_counter--;
         }
     }
     // non devo svegliare il processo
@@ -196,18 +195,18 @@ void DoIO(state_t* ptr_exc){
             Numero della linea mi dice a quale blocco di semafori fare riferimento e il numero del device a quale di quelli della linea fare riferimento.
 
         */
-        
+        //DEVREGLEN = ampiezza di un registro all'interno del device
         memaddr commandreg = ptr_exc->reg_a1;
         
-        memaddr offset = (commandreg - 0x10000054);  // ritorna la distanza dall'indirizzo base dei devices.
+        memaddr offset = (commandreg - START_DEVREG);  // ritorna la distanza dall'indirizzo base dei devices.
         //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
-        memaddr inneroffset = offset % 0x10;  //quanto sono distante dall'inzio del device.
+        memaddr inneroffset = offset % START_DEVREG;  //quanto sono distante dall'inzio del device.
         if(inneroffset != 0x4 && inneroffset != 0xC){
             //errore
             PANIC();
         }
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
-        memaddr devoffset = (devbase - 0x10000054); // troviamo l'offset del device 
+        memaddr devoffset = (devbase - START_DEVREG); // troviamo l'offset del device 
 
         int IntlineNo = 3 + (devoffset / 0x80); // trovata la linea ora 
         if(IntlineNo < 3 || IntlineNo > 7){

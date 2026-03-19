@@ -29,6 +29,7 @@
 
 /* qui variabili vengono "promesse" al linker*/
 #define PSEUDO_CLOCK_SEM_INDEX (SEMDEVLEN - 1) //indice del semaforo pseudo-clock
+#define DEVREGBASE 0x10000054
 extern int process_counter; //Quanti processi attualmente presenti
 extern int soft_block_counter; //Quanti processi "Blocked" (ASL)
 extern struct list_head ready_queue; // coda dei processi
