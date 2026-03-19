@@ -54,7 +54,7 @@ void interruptHandler(state_t* ptr_exc){
     
     */
    if(intline = 1){
-    setTIMER(TIMESLICE);
+    setTIMER(TIMESLICE); // serve come ack aggiorna il timer per evitare di rientrare subito sull'interrupt appena si riattivano gli interrupt
     //bisogna copiare lo stato del processore nello stato del current process
     current_process->p_s = *ptr_exc;
     //pongo current process nella ready_queue;
@@ -72,7 +72,14 @@ void interruptHandler(state_t* ptr_exc){
    else if(intline = 2){
     //ack
     LDIT(PSECOND);
-    //funzione per liberare la coda sull'indirizzo dello pseudo_clock_sem e mettere i processi in readyqueue. Qui forse soft_block_counter va decrementato.
+    //funzione per liberare la coda sull'indirizzo dello pseudo_clock_sem e mettere i processi in readyqueue. Qui  soft_block_counter va decrementato.
+    unblock_pseudoclock();
+    if(current_process != NULL){
+        LDST(ptr_exc);
+    }
+    else{
+        scheduler();
+    }
    }
 
     //caso Device-generico 
@@ -93,4 +100,21 @@ void interruptHandler(state_t* ptr_exc){
 
     
     
+}
+
+
+//funzione che sblocca i processi fermi sul semaforo pseudoclock e riemtte in readyqueue i processi
+//indirizzo pseudo_clock_sem
+void unblock_pseudoclock(){
+    int flag = 0;
+    while(flag == 0){
+         pcb_t* blocked_process = removeBlocked(pseudo_clock_sem);
+        if(blocked_process == NULL){
+            flag = 1;
+        }else{
+            insertProcQ(&ready_queue,blocked_process);
+            soft_block_counter--;
+        }
+    }
+
 }

@@ -167,6 +167,7 @@ void block_sync(int* semaddr, state_t* ptr_exc){
     scheduler();
 }
 
+
 //address of the command field in a1 -> P made on the semaphore that the Nucleus maintains for the I/O device indicated by the value in a1
 //always block the Current Process on the ASL(sem qui sono sync)
 //terminal device -> 2 sem (one input and one output)
