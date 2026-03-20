@@ -90,10 +90,36 @@ void interruptHandler(state_t* ptr_exc){
     // salvare lo status code nel nuovo pcb registro a0
     // inserire il pcb appena sbloccato nella readyqueue
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
-   else if(intline > 2 && intline <8){ //ahah conogelato
+   else if(intline > 2 && intline <8){ 
     //definisci per linea la bitmap su dove fare il & per trovare il device
-   }
-
+    memaddr bitmap = *((unsigned int*) CDEV_BITMAP_ADDR(intline)); //casting necessario perchè cdev_bitmap_addr ritorna l'indirizzo
+    // ora si fa un while e si trova il primo device della linea con un pending interrupt
+    memaddr devON = DEV0ON;
+    int devNo = 0;
+    while((bitmap & devON) == 0){
+        devON <<= 1;
+        devNo++;
+        if(devNo > 7)
+            PANIC();
+    }
+    //dovrebbe aver ritornato al primo device incontrato.
+    memaddr devaddrb = 0x10000054 + ((intline - 3) * 0x80) + (((unsigned int) devON) * 0x10); 
+    //ora va salvato lo stato per dopo.
+    //qui si diverge: una parte per i device normali e una per i device terminali
+    if(intline< 7){ //device normale
+        memaddr status_save = devaddrb + 0x0; 
+       int* semaddr= sem_index_from_dev(intline,devNo,0x4);// linea, numero di device e offset del command register 0x4 in questo caso !!!!!! scope della funzione va reso visibile anche qui 
+       pcb_t* unlocked_proc = unblock_devicesem(semaddr); // faccio la V e sblocco il processo
+       unlocked_proc->p_s.reg_a0 = status_save;
+       insertProcQ(&ready_queue, unlocked_proc);
+       if(current_process != NULL)
+            LDST(ptr_exc);
+       else
+            scheduler();
+    }else{ // terminali
+        //bisogna distinguere se è un recv terminal o trasmit terminal
+    }
+    }
    else{
     PANIC();
    }
