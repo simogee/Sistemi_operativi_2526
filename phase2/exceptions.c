@@ -33,7 +33,7 @@ void exception_handler(){
     klog_print("excCode = ");
     klog_print_hex(ptr_exc->cause & CAUSE_EXCCODE_MASK);
     klog_print("\n");
-    bp();
+    bp(); // ultima iter: saved cause = 51000008  CAUSE_IS_INT(saved cause) = 00000008      excCode = 51                                                                       
 
     if(CAUSE_IS_INT(cause))
     {
