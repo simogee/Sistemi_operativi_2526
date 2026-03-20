@@ -120,14 +120,17 @@ void print(char *msg) {
     devregtr  status;
 
     SYSCALL(PASSEREN, (int)&sem_term_mut, 0, 0); /* P(sem_term_mut) */
+    
     while (*s != EOS) {
         devregtr value = PRINTCHR | (((devregtr)*s) << 8);
-        status         = SYSCALL(DOIO, (int)command, (int)value, 0);
+bp();
+        status         = SYSCALL(DOIO, (int)command, (int)value, 0); // non viene mai chiamato l'interrupt?? forse panic dentro interrupt ora entra penso correttamente
         if ((status & TERMSTATMASK) != RECVD) {
             PANIC();
         }
         s++;
     }
+    
     SYSCALL(VERHOGEN, (int)&sem_term_mut, 0, 0); /* V(sem_term_mut) */
 }
 
@@ -159,14 +162,14 @@ void test() {
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
     SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
 
-bp();
+
     if (sem_testsem != 0) {
         print("Error: wrong semaphore value\n");
         PANIC();
     }
+
 bp();
-   
-    //print("p1 v(sem_testsem)\n"); //si blocca dopo la prima p
+print("p1 v(sem_testsem)\n"); //\n lo fa crashare?
 bp();
     /* set up states of the other processes */
 

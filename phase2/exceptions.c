@@ -1,12 +1,14 @@
-#include <uriscv/const.h>
-#include <uriscv/types.h>
+
 #include "kernel.h"
 /** tlb refill da fare o no? presente gia' in p2test */
 void exception_handler();
 void syscallHandler();
 void uTLB_RefillHandler();
 int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
-
+void interruptHandler(state_t* ptr_exc);
+extern void klog_print(char *msg);
+extern void klog_print_dec(unsigned int num);
+extern void klog_print_hex(unsigned int num);
 /*void uTLB_RefillHandler() {
 setENTRYHI(0x80000000);
 setENTRYLO(0x00000000);
@@ -19,11 +21,23 @@ void subTree_killer(pcb_t* p);
 void exception_handler(){
 
     state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
-    unsigned int cause = getCAUSE();
+    unsigned int cause = ptr_exc->cause;
+    klog_print("saved cause = ");
+    klog_print_hex(ptr_exc->cause);
+    klog_print("\n");
+
+    klog_print("CAUSE_IS_INT(saved cause) = ");
+    klog_print_hex(CAUSE_IS_INT(ptr_exc->cause));
+    klog_print("\n");
+
+    klog_print("excCode = ");
+    klog_print_hex(ptr_exc->cause & CAUSE_EXCCODE_MASK);
+    klog_print("\n");
+    bp();
 
     if(CAUSE_IS_INT(cause))
     {
-        //interruptHandler(ptr_exc); //questo sara' in un altro file.
+        interruptHandler(ptr_exc); //questo sara' in un altro file.
     }
     else{
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
@@ -201,7 +215,7 @@ void DoIO(state_t* ptr_exc){
         
         memaddr offset = (commandreg - START_DEVREG);  // ritorna la distanza dall'indirizzo base dei devices.
         //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
-        memaddr inneroffset = offset % START_DEVREG;  //quanto sono distante dall'inzio del device.
+        memaddr inneroffset = offset % DEVREGSIZE;  //quanto sono distante dall'inzio del device.
         if(inneroffset != 0x04 && inneroffset != 0x0C){
             //errore
             PANIC();
@@ -209,11 +223,11 @@ void DoIO(state_t* ptr_exc){
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
         memaddr devoffset = (devbase - START_DEVREG); // troviamo l'offset del device 
 
-        int IntlineNo = 3 + (devoffset / DEVREGSIZE*DEVPERINT); // trovata la linea ora 
+        int IntlineNo = 3 + (devoffset / (DEVREGSIZE * DEVPERINT)); // trovata la linea ora 
         if(IntlineNo < 3 || IntlineNo > 7){
             PANIC();
         }
-        int devNo = (devoffset %  DEVREGSIZE*DEVPERINT) / DEVREGSIZE; // trovato il device number.(DEVREGSIZE è size di un device e DEVPERINT = numero di device per interrupt line)
+        int devNo = (devoffset % (DEVREGSIZE * DEVPERINT)) / DEVREGSIZE; // trovato il device number.(DEVREGSIZE è size di un device e DEVPERINT = numero di device per interrupt line)
         // ora bisogna mappare correttamente il semaforo alla linea e poi al device corretto
         /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
         int* semadr = sem_index_from_dev(IntlineNo,devNo, inneroffset); // ritorna il semaforo su cui verrà fatta la P

@@ -1,45 +1,44 @@
 #include "kernel.h"
-
-
+extern void klog_print(char *msg);
+extern void klog_print_dec(unsigned int num);
+extern void klog_print_hex(unsigned int num);
 //lower number line higher prio if two interrupt per device should solve the one with highest prio
 //1. PLT highest prio 2. Interval Timer
 //per terminali la trasmissione ha prio piu' alta rispetto ai recv
+pcb_t* unblock_devicesem(int* semaddr);
+void unblock_pseudoclock();
 
 void interruptHandler(state_t* ptr_exc){
+    
     unsigned int cause = ptr_exc->cause;
-    cause = cause & CAUSE_EXCCODE_MASK; // ritorna il valore effettivo del interrupt
+    unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; 
     int intline;
-    switch(cause){
-        //Process local timer IL_CPUTIMER intline 1
-        case IL_CPUTIMER:
+    //klog_print("cause=");
+    //klog_print_hex(ptr_exc->cause); // exit cause 51?? 17 volte- 18 esima crash
+    if (cause_code == IL_CPUTIMER) {
         intline = 1;
-        break;
-        //Interval timer IL_TIMER intline 2
-        case IL_TIMER:
+    }
+    else if (cause_code == IL_TIMER) {
         intline = 2;
-        break;
-        //Disk device IL_DISK intline 3
-        case IL_DISK:
+    }
+    else if (cause_code == IL_DISK) {
         intline = 3;
-        break;
-        //Flash device IL_FLASH intline 4
-        case IL_FLASH:
+    }
+    else if (cause_code == IL_FLASH) {
         intline = 4;
-        break;
-        //Ethernet device IL_ETHERNET intline 5
-        case IL_ETHERNET:
+    }
+    else if (cause_code == IL_ETHERNET) {
         intline = 5;
-        break;
-        //Printer device IL_PRINTER intline 6
-        case IL_PRINTER:
+    }
+    else if (cause_code == IL_PRINTER) {
         intline = 6;
-        break;
-        //Terminal device IL_TERMINAL intline 7
-        case IL_TERMINAL:
+    }
+    else if (cause_code == IL_TERMINAL) {
         intline = 7;
-        break;
-        //caso in cui arriva un valore non riconosciuto
-        default:
+    }
+    else {
+        klog_print("PANICO interrupt handler");
+        bp();
         PANIC();
     }
     //ora abbiamo la linea in cui e' avvenuto un interrupt.
@@ -53,10 +52,14 @@ void interruptHandler(state_t* ptr_exc){
      * chiama lo scheduler
     
     */
-   if(intline = 1){
+   if(intline == 1){
+    cpu_t now;
+    STCK(now);
     setTIMER(TIMESLICE); // serve come ack aggiorna il timer per evitare di rientrare subito sull'interrupt appena si riattivano gli interrupt
     //bisogna copiare lo stato del processore nello stato del current process
     current_process->p_s = *ptr_exc;
+    current_process->p_time += now - slice_start;
+
     //pongo current process nella ready_queue;
     insertProcQ(&ready_queue,current_process);
     current_process = NULL;
@@ -69,7 +72,7 @@ void interruptHandler(state_t* ptr_exc){
     // Unblock all PCBs waiting a pseudo-clock tick e put in readyqueue.  pseudo_clock_sem= [48] Fai una funzione di sblocco e decremento di soft_block_counter
     // return control to current process if exists LDST(ptr_exc); 
     //  */
-   else if(intline = 2){
+   else if(intline == 2){
     //ack
     LDIT(PSECOND);
     //funzione per liberare la coda sull'indirizzo dello pseudo_clock_sem e mettere i processi in readyqueue. Qui  soft_block_counter va decrementato.
@@ -92,35 +95,77 @@ void interruptHandler(state_t* ptr_exc){
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
    else if(intline > 2 && intline <8){ 
     //definisci per linea la bitmap su dove fare il & per trovare il device
-    memaddr bitmap = *((unsigned int*) CDEV_BITMAP_ADDR(intline)); //casting necessario perchè cdev_bitmap_addr ritorna l'indirizzo
+    unsigned int bitmap = *((unsigned int*) CDEV_BITMAP_ADDR(intline)); //casting necessario perchè cdev_bitmap_addr ritorna l'indirizzo
     // ora si fa un while e si trova il primo device della linea con un pending interrupt
-    memaddr devON = DEV0ON;
+    unsigned int devON = DEV0ON;
     int devNo = 0;
     while((bitmap & devON) == 0){
         devON <<= 1;
         devNo++;
-        if(devNo > 7)
-            PANIC();
+        if(devNo > 7) PANIC();
     }
     //dovrebbe aver ritornato al primo device incontrato.
-    memaddr devaddrb = 0x10000054 + ((intline - 3) * 0x80) + (((unsigned int) devON) * 0x10); 
+    memaddr devaddrb = DEVREGBASE + ((intline - 3) * (DEVPERINT * DEVREGSIZE)) + (devNo * DEVREGSIZE);
     //ora va salvato lo stato per dopo.
     //qui si diverge: una parte per i device normali e una per i device terminali
+
+
     if(intline< 7){ //device normale
-        memaddr status_save = devaddrb + 0x0; 
-       int* semaddr= sem_index_from_dev(intline,devNo,0x4);// linea, numero di device e offset del command register 0x4 in questo caso !!!!!! scope della funzione va reso visibile anche qui 
+       unsigned int status_save = *((unsigned int*)(devaddrb + STATUS * DEVREGLEN));//memaddr status_save = devaddrb + 0x0; 
+       memaddr commandaddr = devaddrb + (COMMAND * DEVREGLEN);
+       *((unsigned int*) commandaddr) = ACK;
+       int* semaddr= sem_index_from_dev(intline,devNo,(COMMAND * DEVREGLEN));// linea, numero di device e offset del command register 0x4 in questo caso !!!!!! scope della funzione va reso visibile anche qui 
        pcb_t* unlocked_proc = unblock_devicesem(semaddr); // faccio la V e sblocco il processo
-       unlocked_proc->p_s.reg_a0 = status_save;
-       insertProcQ(&ready_queue, unlocked_proc);
+       if(unlocked_proc != NULL){
+            unlocked_proc->p_s.reg_a0 = status_save;
+            insertProcQ(&ready_queue, unlocked_proc);   
+       }
        if(current_process != NULL)
             LDST(ptr_exc);
        else
             scheduler();
+
     }else{ // terminali
-        //bisogna distinguere se è un recv terminal o trasmit terminal
+        //bisogna distinguere se è un recv terminal o trasmit terminal: 
+        unsigned int recv_status = *((unsigned int*)(devaddrb + RECVSTATUS * DEVREGLEN));
+        unsigned int tran_status = *((unsigned int*)(devaddrb + TRANSTATUS * DEVREGLEN)); // prendo entrambi gli status e poi confronto
+        unsigned int status_save;
+        memaddr command_addr;
+        int *semaddr;
+        pcb_t *unlocked_proc;
+        //trasmission is higher prio than recv
+        if((tran_status & 0xFF) != READY){
+            status_save = tran_status;
+            command_addr = devaddrb + TRANCOMMAND * DEVREGLEN;
+            semaddr = sem_index_from_dev(7, devNo, TRANCOMMAND * DEVREGLEN);
+        }
+        else if((recv_status & 0xFF) != READY){
+            status_save = recv_status;
+            command_addr = devaddrb + RECVCOMMAND * DEVREGLEN;
+            semaddr = sem_index_from_dev(7, devNo, RECVCOMMAND * DEVREGLEN);
+        }else {
+            klog_print("PANICO intline 7"); 
+            bp();
+            PANIC();
+        }
+            
+        *((unsigned int*)command_addr) = ACK; // carico ACK
+        unlocked_proc =unblock_devicesem(semaddr);
+        if(unlocked_proc != NULL){
+            unlocked_proc->p_s.reg_a0 = status_save;
+            insertProcQ(&ready_queue, unlocked_proc);   
+        }
+        if(current_process != NULL){
+            LDST(ptr_exc);
+        }else
+            scheduler();
+
+        
     }
     }
    else{
+        klog_print("PANICO intline non valida"); 
+        bp();
     PANIC();
    }
 
@@ -134,7 +179,7 @@ void interruptHandler(state_t* ptr_exc){
 void unblock_pseudoclock(){
     int flag = 0;
     while(flag == 0){
-         pcb_t* blocked_process = removeBlocked(pseudo_clock_sem);
+        pcb_t* blocked_process = removeBlocked(pseudo_clock_sem);
         if(blocked_process == NULL){
             flag = 1;
         }else{
@@ -142,14 +187,22 @@ void unblock_pseudoclock(){
             soft_block_counter--;
         }
     }
+    *pseudo_clock_sem =0; //reset del valore del semaforo
 
 }
+
 pcb_t* unblock_devicesem(int* semaddr){
-    pcb_t* blocked_process = removeBlocked(semaddr);
-    if(blocked_process == NULL){
-        PANIC();
+    pcb_t* blocked_process = NULL;
+    (*semaddr)++;
+    if((*semaddr)<= 0)
+    {
+        blocked_process = removeBlocked(semaddr);
+        if(blocked_process != NULL){
+            soft_block_counter--;
+        }
     }
-    soft_block_counter--;
+    
+    
     return blocked_process;
 
 }

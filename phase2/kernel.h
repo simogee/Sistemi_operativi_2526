@@ -41,5 +41,7 @@ extern cpu_t slice_start; // momento di inizio esecuzione processo
 /** funzioni */
 void scheduler();
 void bp();
+int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
+void interruptHandler(state_t* ptr_exc);
 
 #endif 
