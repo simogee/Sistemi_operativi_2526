@@ -1,5 +1,7 @@
 #include "kernel.h"
-
+extern void klog_print(char *msg);
+extern void klog_print_dec(unsigned int num);
+extern void klog_print_hex(unsigned int num);
 
 void scheduler(){
   if (!emptyProcQ(&ready_queue)){
@@ -22,6 +24,8 @@ void scheduler(){
     WAIT();
 
   }else if (process_counter >0 && soft_block_counter ==  0){
+    klog_print("Panico scheduler: deadlock");
+    bp();
     PANIC();
   }
  

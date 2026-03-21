@@ -15,27 +15,31 @@ setENTRYLO(0x00000000);
 TLBWR();
 LDST((state_t*) BIOSDATAPAGE);
 }*/
-
+static int i = 0;
 void subTree_killer(pcb_t* p);
 
 void exception_handler(){
 
-    state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
+    state_t *ptr_exc = GET_EXCEPTION_STATE_PTR(getPRID());//state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
     unsigned int cause = ptr_exc->cause;
-    klog_print("saved cause = ");
-    klog_print_hex(ptr_exc->cause);
-    klog_print("\n");
 
-    klog_print("CAUSE_IS_INT(saved cause) = ");
-    klog_print_hex(CAUSE_IS_INT(ptr_exc->cause));
-    klog_print("\n");
+    // klog_print("saved cause = ");
+    // klog_print_hex(ptr_exc->cause);
+    // klog_print("\n");
+    i++;
+    // klog_print("CAUSE_IS_INT(saved cause) = ");
+    // klog_print_hex(CAUSE_IS_INT(ptr_exc->cause));
+    // klog_print("\n");
 
-    klog_print("excCode = ");
-    klog_print_hex(ptr_exc->cause & CAUSE_EXCCODE_MASK);
-    klog_print("\n");
-    bp(); // ultima iter: saved cause = 51000008  CAUSE_IS_INT(saved cause) = 00000008      excCode = 51                                                                       
+    // klog_print("excCode = ");
+    // klog_print_hex(ptr_exc->cause & CAUSE_EXCCODE_MASK);
+    // klog_print("\n\n");
+    // klog_print("i counter: ");
+    // klog_print_dec(i);
+    // klog_print("\n");
+    // bp();                                                                      
 
-    if(CAUSE_IS_INT(cause))
+    if(CAUSE_IS_INT(cause)) //check most significant bit
     {
         interruptHandler(ptr_exc); //questo sara' in un altro file.
     }
@@ -134,6 +138,8 @@ void Passeren(state_t* ptr_exc){
         //devo inserire il processo nel semaforo
         int check = insertBlocked(semaphore,current_process); //inserisce il processo nella coda del semaforo relativo.
         if(check == 1){
+            klog_print("NO SEMAFORI LIBERI PASSAREN");
+            bp();
             PANIC();  //non ci sono semafori liberi
         } 
         current_process = NULL; //dereferenzio il current process
@@ -174,6 +180,8 @@ void block_sync(int* semaddr, state_t* ptr_exc){
     //devo inserire il processo nel semaforo
     int check = insertBlocked(semaddr,current_process); //inserisce il processo nella coda del semaforo relativo.
     if(check == 1){
+        klog_print("NOSEMAFORILIBERI BLOCK_SYNC");
+        bp();
         PANIC();  //non ci sono semafori liberi
     }
     soft_block_counter++;
@@ -218,6 +226,8 @@ void DoIO(state_t* ptr_exc){
         memaddr inneroffset = offset % DEVREGSIZE;  //quanto sono distante dall'inzio del device.
         if(inneroffset != 0x04 && inneroffset != 0x0C){
             //errore
+            klog_print("INNEROFFSET errato");
+            bp();
             PANIC();
         }
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
@@ -225,16 +235,28 @@ void DoIO(state_t* ptr_exc){
 
         int IntlineNo = 3 + (devoffset / (DEVREGSIZE * DEVPERINT)); // trovata la linea ora 
         if(IntlineNo < 3 || IntlineNo > 7){
+            klog_print("intlineno errato");
+            bp();
             PANIC();
-        }
+            }
         int devNo = (devoffset % (DEVREGSIZE * DEVPERINT)) / DEVREGSIZE; // trovato il device number.(DEVREGSIZE è size di un device e DEVPERINT = numero di device per interrupt line)
         // ora bisogna mappare correttamente il semaforo alla linea e poi al device corretto
         /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
         int* semadr = sem_index_from_dev(IntlineNo,devNo, inneroffset); // ritorna il semaforo su cui verrà fatta la P
         if(semadr == NULL){ 
+            klog_print("semaddr errato");
+            bp();
             PANIC();
         }
         *((unsigned int*)commandreg) = ptr_exc->reg_a2;
+        // klog_print("commandreg = ");
+        // klog_print_hex(commandreg);
+        // klog_print("\n");
+
+        // klog_print("command value = ");
+        // klog_print_hex(ptr_exc->reg_a2);
+        // klog_print("\n");
+        // bp();
         block_sync(semadr,ptr_exc);
 
 }
@@ -317,7 +339,26 @@ void syscallHandler(state_t* ptr_exc){
       * MSTATUS_MPP_M = kernel mode
       */
      //fino a qui funziona
-     int syscallnum = (int) ptr_exc->reg_a0;
+    
+    int syscallnum = (int) ptr_exc->reg_a0;
+    // klog_print("syscall a0 = ");
+    // klog_print_hex(ptr_exc->reg_a0);
+    // klog_print("\n in decimale:\n");
+    // klog_print_dec(syscallnum);
+    // klog_print("\n");
+
+    // klog_print("syscall a1 = ");
+    // klog_print_hex(ptr_exc->reg_a1);
+    // klog_print("\n");
+
+    // klog_print("syscall a2 = ");
+    // klog_print_hex(ptr_exc->reg_a2);
+   
+    // klog_print("\n");
+
+    // klog_print("pc_epc = ");
+    // klog_print_hex(ptr_exc->pc_epc);
+    // klog_print("\n");
      if(syscallnum < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_M){
         //qui dobbiamo sviluppare le nostre syscall NSYS1-NSY10
         // dentro const.h degli header locali abbiamo le def per le syscalls
@@ -338,17 +379,24 @@ void syscallHandler(state_t* ptr_exc){
                 break;
             case DOIO:
                 DoIO(ptr_exc);
+                break;
             case GETTIME:
                 GetCPUTime(ptr_exc);
+                break;
             case CLOCKWAIT:
                 WaitForClock(ptr_exc);
+                break;
             case GETSUPPORTPTR:
                 GetSupportData(ptr_exc);
+                break;
             case GETPROCESSID:
                 GetProcessID(ptr_exc);
+                break;
             case YIELD:
                 Yield(ptr_exc);
+                break;
             default:
+
                 //trapHandler();
         }
      }
@@ -359,7 +407,7 @@ void syscallHandler(state_t* ptr_exc){
      else{ //richiesta insesistente
         //trapHandler();
      }
-}
+    }
 
 
 
@@ -409,7 +457,7 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     //se 7 allora devo capire se è un dev di ricezione o di invio.
 
     switch(IntlineNo){
-        //casi device normali
+        //casi device normalisaved cause = B���������������������������CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               commandreg = 06200001                     command value = 2007                      saved cause = 51000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 51                                                                       
         case 3: 
         //offset 0
         return &device_sem[devNo];

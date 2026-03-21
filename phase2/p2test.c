@@ -123,9 +123,10 @@ void print(char *msg) {
     
     while (*s != EOS) {
         devregtr value = PRINTCHR | (((devregtr)*s) << 8);
-bp();
+
         status         = SYSCALL(DOIO, (int)command, (int)value, 0); // non viene mai chiamato l'interrupt?? forse panic dentro interrupt ora entra penso correttamente
         if ((status & TERMSTATMASK) != RECVD) {
+            klog_print("panico status");
             PANIC();
         }
         s++;
@@ -168,9 +169,9 @@ void test() {
         PANIC();
     }
 
-bp();
+
 print("p1 v(sem_testsem)\n"); //\n lo fa crashare?
-bp();
+
     /* set up states of the other processes */
 
     STST(&hp_p1state);
@@ -573,7 +574,7 @@ void p5sys() {
 
 /* p5 -- SYS5 test process */
 void p5() {
-    print("p5 starts\n");
+    print("p5 starts\n"); // arriva qui
 
     /* cause a pgm trap access some non-existent memory */
     *p5MemLocation = *p5MemLocation + 1; /* Should cause a program trap */

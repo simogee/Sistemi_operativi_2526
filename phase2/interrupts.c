@@ -12,9 +12,13 @@ void interruptHandler(state_t* ptr_exc){
     
     unsigned int cause = ptr_exc->cause;
     unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; 
+    // klog_print("\n\ninterrupt cause code:\n");
+    // klog_print_hex(cause_code);
+    // klog_print("\n");
+    // bp();
     int intline;
-    //klog_print("cause=");
-    //klog_print_hex(ptr_exc->cause); // exit cause 51?? 17 volte- 18 esima crash
+    // klog_print("cause=");
+    // klog_print_hex(ptr_exc->cause); // exit cause 51?? 17 volte- 18 esima crash !!!30esima ora!!!
     if (cause_code == IL_CPUTIMER) {
         intline = 1;
     }
@@ -95,14 +99,26 @@ void interruptHandler(state_t* ptr_exc){
     // fare LDST sullo stato dell'eccezione della cpu oppure chiamare scheduler
    else if(intline > 2 && intline <8){ 
     //definisci per linea la bitmap su dove fare il & per trovare il device
-    unsigned int bitmap = *((unsigned int*) CDEV_BITMAP_ADDR(intline)); //casting necessario perchè cdev_bitmap_addr ritorna l'indirizzo
+    unsigned int bitmap = *((unsigned int*) CDEV_BITMAP_ADDR(cause_code)); //casting necessario perchè cdev_bitmap_addr ritorna l'indirizzo ci va cause_code e non intline
     // ora si fa un while e si trova il primo device della linea con un pending interrupt
     unsigned int devON = DEV0ON;
     int devNo = 0;
     while((bitmap & devON) == 0){
         devON <<= 1;
         devNo++;
-        if(devNo > 7) PANIC();
+        if(devNo > 7){
+            // klog_print("cause=");
+            // klog_print_hex(ptr_exc->cause);
+            // klog_print("\ninterrupt cause code:\n");
+            // klog_print_hex(cause_code);
+            // klog_print("\n intlineno:");
+            // klog_print_dec(intline);
+            // klog_print("\ndevno:");
+            // klog_print_dec(devNo);
+            klog_print("\ndev non trovato?"); //-> qui si blocca
+            bp();
+            PANIC();
+        } 
     }
     //dovrebbe aver ritornato al primo device incontrato.
     memaddr devaddrb = DEVREGBASE + ((intline - 3) * (DEVPERINT * DEVREGSIZE)) + (devNo * DEVREGSIZE);
@@ -137,11 +153,13 @@ void interruptHandler(state_t* ptr_exc){
         if((tran_status & 0xFF) != READY){
             status_save = tran_status;
             command_addr = devaddrb + TRANCOMMAND * DEVREGLEN;
+            
             semaddr = sem_index_from_dev(7, devNo, TRANCOMMAND * DEVREGLEN);
         }
         else if((recv_status & 0xFF) != READY){
             status_save = recv_status;
             command_addr = devaddrb + RECVCOMMAND * DEVREGLEN;
+            
             semaddr = sem_index_from_dev(7, devNo, RECVCOMMAND * DEVREGLEN);
         }else {
             klog_print("PANICO intline 7"); 
