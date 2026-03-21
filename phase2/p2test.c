@@ -170,7 +170,7 @@ void test() {
     }
 
 
-print("p1 v(sem_testsem)\n"); //\n lo fa crashare?
+print("p1 v(sem_testsem)\n");
 
     /* set up states of the other processes */
 
@@ -215,7 +215,7 @@ print("p1 v(sem_testsem)\n"); //\n lo fa crashare?
     p6state.pc_epc = (memaddr)p6;
     p6state.status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     p6state.mie = MIE_ALL;
-//bp();  fun qui tutto ok
+
     STST(&p7state);
     p7state.reg_sp = p6state.reg_sp - QPAGE;
     p7state.pc_epc = (memaddr)p7;
@@ -279,20 +279,20 @@ print("p1 v(sem_testsem)\n"); //\n lo fa crashare?
       /* create process p2 */
     p2pid = SYSCALL(CREATEPROCESS, (int)&p2state, PROCESS_PRIO_LOW, (int)NULL); /* start p2     */
     
-    //print("p2 was started\n");
+    print("p2 was started\n");
     
     SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
-//bp(); // fino a qui funziona se togli print                                                  
-    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */ //qui si ferma e il valore del semaforo è effettivamente -1 ma crasha.
+                                               
+    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */ 
 
     /* make sure we really blocked */
     if (p1p2synch == 0) {
-        //print("error: p1/p2 synchronization bad\n");
+        print("error: p1/p2 synchronization bad\n");
     }
-//bp();
+
     p3pid = SYSCALL(CREATEPROCESS, (int)&p3state, PROCESS_PRIO_LOW, (int)NULL); /* start p3     */
    
-    //print("p3 is started\n");
+    print("p3 is started\n");
 
     SYSCALL(PASSEREN, (int)&sem_endp3, 0, 0); /* P(sem_endp3)     */
 
