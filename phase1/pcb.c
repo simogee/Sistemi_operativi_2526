@@ -200,6 +200,7 @@ pcb_t* findByPid(int pid){
     while(i < MAXPROC){
         if(pcbFree_table[i].p_pid == pid)  // forse bisognerebbe fare un check per vedere se viene usata?
             return &pcbFree_table[i];
+        i++;
     }
     return NULL;
 }

@@ -104,6 +104,9 @@ scheduler();
 
 }
 void subTree_killer(pcb_t* p){
+    klog_print("PID=");
+    klog_print_hex((unsigned int)p->p_pid); // loop eterno?
+    klog_print("\n");
     while(!emptyChild(p)){ // ricorsivo
         pcb_t* child = removeChild(p);
         subTree_killer(child);
