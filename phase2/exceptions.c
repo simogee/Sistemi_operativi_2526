@@ -34,7 +34,7 @@ void exception_handler(){
             syscallHandler(ptr_exc);
         else if (cause_code >= 24 && cause_code <= 28) 
             passup_or_die(PGFAULTEXCEPT);
-        else if( (cause_code >=0 && cause_code <= 7) || (cause_code == 9 || cause_code == 10)||(cause_code>=11 && cause_code<=23))
+        else if( (cause_code >=0 && cause_code <= 7) || (cause_code == 9 || cause_code == 10)||(cause_code>=12 && cause_code<=23))
             passup_or_die(GENERALEXCEPT); 
         else
             PANIC();
@@ -55,29 +55,35 @@ void create_process(state_t* ptr_exc){
     ptr_exc->pc_epc += WORDLEN;
     LDST(ptr_exc);
   }
-  ptr_exc->reg_a0 = new_proc->p_pid; // c'e' spazio -> salvo il pid del figlio nel reg a0 del padre
-  new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio: il padre deve preparare uno state_t da passare al figlio.
-  new_proc->p_prio =  ptr_exc->reg_a2;
+  else{
+    ptr_exc->reg_a0 = new_proc->p_pid; // c'e' spazio -> salvo il pid del figlio nel reg a0 del padre
+    new_proc->p_s = *((state_t*) ptr_exc->reg_a1); // a1 (del padre) ha lo status di p_s del figlio: il padre deve preparare uno state_t da passare al figlio.
+    new_proc->p_prio =  ptr_exc->reg_a2;
  
-  new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
+    new_proc->p_supportStruct = (support_t*) ptr_exc->reg_a3;
 
   
-  insertChild(current_process, new_proc);
-  //nuovo processo va inserito nella testa della readyqueue
-  insertProcQ(&ready_queue, new_proc);
-  process_counter++;
-  ptr_exc->pc_epc += WORDLEN;
-  LDST(ptr_exc);
+    insertChild(current_process, new_proc);
+    //nuovo processo va inserito nella testa della readyqueue
+    insertProcQ(&ready_queue, new_proc);
+    klog_print("PROC++ in create, now=");
+    klog_print_dec(process_counter);
+
+    process_counter++;
+    ptr_exc->pc_epc += WORDLEN;
+    LDST(ptr_exc);
+  }
+ 
 }
 
 
 
 
 /** SYSTEMCALL per terminare i processi */
+/* se processo current eliminato chiama lo scheduler altrimenti incrementa pc e riprende*/
 void terminate_process(state_t* ptr_exc){
 // se ptr_exc->reg_a1 = 0 allora termino current_process
 // altrimenti cerco il pid relativo.
-
 pcb_t* process_to_kill = NULL;
 
 if(ptr_exc->reg_a1 == 0){
@@ -86,13 +92,45 @@ if(ptr_exc->reg_a1 == 0){
 else{
     process_to_kill = findByPid(ptr_exc->reg_a1); 
 }
-
-
 if(process_to_kill != NULL){ // esiste il processo da uccidere
-    outChild(process_to_kill); // serve per rimuovere il processo dalla lista dei figli di un eventuale padre
+    outChild(process_to_kill); // stacchiamo il processo dalla radice
     subTree_killer(process_to_kill);
 }
-    scheduler(); // termine di questa syscall richiama lo scheduler
+if(current_process != NULL){
+    insertProcQ(&ready_queue,current_process);
+    current_process = NULL;
+}
+scheduler();
+
+}
+void subTree_killer(pcb_t* p){
+    while(!emptyChild(p)){ // ricorsivo
+        pcb_t* child = removeChild(p);
+        subTree_killer(child);
+    }
+    // arriviamo all'ultimo processo dell'albero
+    // si può trovare o su un semaforo o in readyqueue o è current process
+    if(p == current_process){
+        current_process = NULL;
+    }
+    else if(p->p_semAdd != NULL){ // è in un semaforo
+         int *sem = p->p_semAdd;
+        //distinguo semaforo device/timer da semafori non mantenuti da kernel
+        if(p->p_semAdd >= &device_sem[0] && p->p_semAdd <= &device_sem[SEMDEVLEN-1]) // è un semaforo mantenuto dal kernel
+        {
+            outBlocked(p);
+            soft_block_counter--;
+        }
+        else{ // semaforo non mantenuto dal kernel
+            outBlocked(p);
+            (*sem)++; // faccio una v per correggere lo stato
+        }
+    }
+    else{ // readyqueue
+        outProcQ(&ready_queue,p);
+    }
+    process_counter--;
+    freePcb(p);
 }
 
 
@@ -236,14 +274,6 @@ void DoIO(state_t* ptr_exc){
             PANIC();
         }
         *((unsigned int*)commandreg) = ptr_exc->reg_a2;
-        // klog_print("commandreg = ");
-        // klog_print_hex(commandreg);
-        // klog_print("\n");
-
-        // klog_print("command value = ");
-        // klog_print_hex(ptr_exc->reg_a2);
-        // klog_print("\n");
-        // bp();
         block_sync(semadr,ptr_exc);
 
 }
@@ -328,24 +358,7 @@ void syscallHandler(state_t* ptr_exc){
      //fino a qui funziona
     
     int syscallnum = (int) ptr_exc->reg_a0;
-    // klog_print("syscall a0 = ");
-    // klog_print_hex(ptr_exc->reg_a0);
-    // klog_print("\n in decimale:\n");
-    // klog_print_dec(syscallnum);
-    // klog_print("\n");
-
-    // klog_print("syscall a1 = ");
-    // klog_print_hex(ptr_exc->reg_a1);
-    // klog_print("\n");
-
-    // klog_print("syscall a2 = ");
-    // klog_print_hex(ptr_exc->reg_a2);
    
-    // klog_print("\n");
-
-    // klog_print("pc_epc = ");
-    // klog_print_hex(ptr_exc->pc_epc);
-    // klog_print("\n");
      if(syscallnum < 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_M){
         //qui dobbiamo sviluppare le nostre syscall NSYS1-NSY10
         // dentro const.h degli header locali abbiamo le def per le syscalls
@@ -416,24 +429,32 @@ void syscallHandler(state_t* ptr_exc){
 
 
 
-void subTree_killer(pcb_t* p){
-    while(!emptyChild(p)){
-        pcb_t* child = removeChild(p);
-        subTree_killer(child);
-    }
-    if(p == current_process){
-        current_process = NULL; // per dereferenziare il pcb_t*
-    }
-    else if(p->p_semAdd != NULL){ // si trova su un semaforo
-        outBlocked(p);
-        soft_block_counter--;
-    }
-    else{                        //non si trova su un semaforo check readyqueue 
-        outProcQ(&ready_queue,p);
-    }
-    process_counter--;
-    freePcb(p);
-}
+// void subTree_killer(pcb_t* p){
+//     while(!emptyChild(p)){
+//         pcb_t* child = removeChild(p);
+//         subTree_killer(child);
+//     }
+//     if(p == current_process){
+//         current_process = NULL; // per dereferenziare il pcb_t*
+//     }
+//     else if(p->p_semAdd != NULL){ // si trova su un semaforo
+//         (*(p->p_semAdd))++;
+//         outBlocked(p);
+//         soft_block_counter--;
+//     }
+//     else{                        //non si trova su un semaforo check readyqueue 
+//         outProcQ(&ready_queue,p);
+//     }
+//     process_counter--;
+//     freePcb(p);
+// }
+
+/** devo rimuovere un processo: il processo si trova solo in readyqueue, current_process o su un semaforo di un device
+ * Ora: terminate mi passa il pcb da killare.terminate
+ * outChild per rimuovere qualsiasi collegamento con il padre.
+ * aggiorno il p counter 
+ * Cerco di capire dove si trova: semafori, current process o readyqueue?
+ */
 
 
 // ritorna l'indice del semaforo data la line e il numero.
@@ -482,8 +503,10 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     if (current_process->p_supportStruct == NULL){ //die
         subTree_killer(current_process);
         scheduler();
+    }else{
+        current_process->p_supportStruct->sup_exceptState[index] = *((state_t*) BIOSDATAPAGE); // anche se abbiamo solo una cpu 0
+        context_t ctx_proc= current_process->p_supportStruct->sup_exceptContext[index];
+        LDCXT(ctx_proc.stackPtr,ctx_proc.status,ctx_proc.pc);
     }
-    current_process->p_supportStruct->sup_exceptState[index] = *GET_EXCEPTION_STATE_PTR(index);
-    context_t ctx_proc= current_process->p_supportStruct->sup_exceptContext[index];
-    LDCXT(ctx_proc.stackPtr,ctx_proc.status,ctx_proc.pc);
+    
  }

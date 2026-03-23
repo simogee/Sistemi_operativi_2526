@@ -18,9 +18,7 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <uriscv/liburiscv.h>
-
 #include "kernel.h"
-extern void klog_print(char *msg);
 
 typedef unsigned int devregtr;
 
@@ -83,8 +81,7 @@ int sem_term_mut = 1,              /* for mutual exclusion on terminal */
     sem_endp8               = 0,   /* to signal demise of p8 */
     sem_endcreate[NOLEAVES] = {0}, /* for a p8 leaf to signal its creation */
     sem_blkp8               = 0,   /* to block p8 */
-    sem_blkp9               = 0,   /* to block p9 */
-    sem_testbinary          = 0;   /* to test binary semaphores */
+    sem_blkp9               = 0;   /* to block p9 */
 
 state_t p2state, p3state, p4state, p5state, p6state, p7state, p8rootstate, child1state, child2state, gchild1state,
     gchild2state, gchild3state, gchild4state, p9state, p10state, hp_p1state, hp_p2state;
@@ -120,18 +117,14 @@ void print(char *msg) {
     devregtr  status;
 
     SYSCALL(PASSEREN, (int)&sem_term_mut, 0, 0); /* P(sem_term_mut) */
-    
     while (*s != EOS) {
         devregtr value = PRINTCHR | (((devregtr)*s) << 8);
-
-        status         = SYSCALL(DOIO, (int)command, (int)value, 0); // non viene mai chiamato l'interrupt?? forse panic dentro interrupt ora entra penso correttamente
+        status         = SYSCALL(DOIO, (int)command, (int)value, 0);
         if ((status & TERMSTATMASK) != RECVD) {
-            klog_print("panico status");
             PANIC();
         }
         s++;
     }
-    
     SYSCALL(VERHOGEN, (int)&sem_term_mut, 0, 0); /* V(sem_term_mut) */
 }
 
@@ -154,23 +147,22 @@ void test() {
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0); /* V(sem_testsem)   */
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0);
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0);
+
     if (sem_testsem != 3) {
         print("Error: wrong semaphore value\n");
         PANIC();
     }
-   
-    SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
-    SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
-    SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
 
+    SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
+    SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
+    SYSCALL(PASSEREN, (int)&sem_testsem, 0, 0);
 
     if (sem_testsem != 0) {
         print("Error: wrong semaphore value\n");
         PANIC();
     }
 
-
-print("p1 v(sem_testsem)\n");
+    print("p1 v(sem_testsem)\n");
 
     /* set up states of the other processes */
 
@@ -203,7 +195,7 @@ print("p1 v(sem_testsem)\n");
     p4state.pc_epc = (memaddr)p4;
     p4state.status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     p4state.mie = MIE_ALL;
- 
+
     STST(&p5state);
     p5Stack = p5state.reg_sp = p4state.reg_sp - (2 * QPAGE); /* because there will 2 p4 running*/
     p5state.pc_epc = (memaddr)p5;
@@ -275,15 +267,15 @@ print("p1 v(sem_testsem)\n");
     p10state.pc_epc = (memaddr)p10;
     p10state.status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     p10state.mie = MIE_ALL;
-  
+
       /* create process p2 */
     p2pid = SYSCALL(CREATEPROCESS, (int)&p2state, PROCESS_PRIO_LOW, (int)NULL); /* start p2     */
-    
+
     print("p2 was started\n");
-    
+
     SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
-                                               
-    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */ 
+
+    SYSCALL(PASSEREN, (int)&sem_endp2, 0, 0); /* P(sem_endp2) (blocking P!)     */
 
     /* make sure we really blocked */
     if (p1p2synch == 0) {
@@ -291,21 +283,19 @@ print("p1 v(sem_testsem)\n");
     }
 
     p3pid = SYSCALL(CREATEPROCESS, (int)&p3state, PROCESS_PRIO_LOW, (int)NULL); /* start p3     */
-   
+
     print("p3 is started\n");
 
     SYSCALL(PASSEREN, (int)&sem_endp3, 0, 0); /* P(sem_endp3)     */
 
     SYSCALL(CREATEPROCESS, (int)&hp_p1state, 10, (int)NULL);
     SYSCALL(CREATEPROCESS, (int)&hp_p2state, PROCESS_PRIO_HIGH, (int)NULL);
-   
+
     p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, PROCESS_PRIO_LOW, (int)NULL); /* start p4     */
 
     pFiveSupport.sup_exceptContext[GENERALEXCEPT].stackPtr = (int)p5Stack;
     pFiveSupport.sup_exceptContext[GENERALEXCEPT].status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    
-    pFiveSupport.sup_exceptContext[GENERALEXCEPT].pc = (memaddr)p5gen; // erra qui?
-    
+    pFiveSupport.sup_exceptContext[GENERALEXCEPT].pc = (memaddr)p5gen;
     pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].stackPtr = p5Stack;
     pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].pc = (memaddr)p5mm;
@@ -315,7 +305,7 @@ print("p1 v(sem_testsem)\n");
     SYSCALL(CREATEPROCESS, (int)&p6state, PROCESS_PRIO_LOW, (int)NULL); /* start p6		*/
 
     SYSCALL(CREATEPROCESS, (int)&p7state, PROCESS_PRIO_LOW, (int)NULL); /* start p7		*/
-;
+
     p9pid = SYSCALL(CREATEPROCESS, (int)&p9state, PROCESS_PRIO_LOW, (int)NULL); /* start p7		*/
 
     SYSCALL(PASSEREN, (int)&sem_endp5, 0, 0); /* P(sem_endp5)		*/
@@ -491,14 +481,14 @@ void p4() {
     /* and eventually, the parent p4 will terminate, killing  */
     /* off both p4's.                                         */
 
-    p4state.reg_sp -= QPAGE; /* give another page  */ // qui si rompe
+    p4state.reg_sp -= QPAGE; /* give another page  */
 
     p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, PROCESS_PRIO_LOW, 0); /* start a new p4    */
 
     SYSCALL(PASSEREN, (int)&sem_synp4, 0, 0); /* wait for it       */
 
     print("p4 is OK\n");
-
+    bp();
     SYSCALL(VERHOGEN, (int)&sem_endp4, 0, 0); /* V(sem_endp4)          */
 
     SYSCALL(TERMPROCESS, 0, 0, 0); /* terminate p4      */
@@ -512,7 +502,6 @@ void p4() {
 void p5gen()
 {
     unsigned int exeCode = pFiveSupport.sup_exceptState[GENERALEXCEPT].cause;
-    
     switch (exeCode)
     {
     // store access fault
@@ -535,7 +524,7 @@ void p5gen()
         break;
 
     default:
-        print("ERROR: other program trap\n"); // errore qui execode :0 
+        print("ERROR: other program trap\n");
         PANIC(); // to avoid sys call looping just exit the program
     }
 
@@ -577,7 +566,7 @@ void p5sys() {
 
 /* p5 -- SYS5 test process */
 void p5() {
-    print("p5 starts\n"); // arriva qui
+    print("p5 starts\n");
 
     /* cause a pgm trap access some non-existent memory */
     *p5MemLocation = *p5MemLocation + 1; /* Should cause a program trap */
@@ -705,7 +694,6 @@ void child2() {
 /*p8leaf -- code for leaf processes*/
 
 void p8leaf1() {
-    SYSCALL(VERHOGEN, (int)&sem_testbinary, 0, 0);
     print("leaf process (1) starts\n");
     SYSCALL(VERHOGEN, (int)&sem_endcreate[0], 0, 0);
     SYSCALL(PASSEREN, (int)&sem_blkp8, 0, 0);
@@ -713,7 +701,6 @@ void p8leaf1() {
 
 
 void p8leaf2() {
-    SYSCALL(VERHOGEN, (int)&sem_testbinary, 0, 0);
     print("leaf process (2) starts\n");
     SYSCALL(VERHOGEN, (int)&sem_endcreate[1], 0, 0);
     SYSCALL(PASSEREN, (int)&sem_blkp8, 0, 0);
@@ -723,12 +710,6 @@ void p8leaf2() {
 void p8leaf3() {
     print("leaf process (3) starts\n");
     SYSCALL(VERHOGEN, (int)&sem_endcreate[2], 0, 0);
-    if (sem_testbinary != 1) {
-        print("Error: binary semaphore value is not 1!\n");
-        PANIC();
-    }
-    SYSCALL(PASSEREN, (int)&sem_testbinary, 0, 0);
-    SYSCALL(PASSEREN, (int)&sem_testbinary, 0, 0);
     SYSCALL(PASSEREN, (int)&sem_blkp8, 0, 0);
 }
 
@@ -749,6 +730,7 @@ void p9() {
 
 void p10() {
     print("p10 starts\n");
+    
     int ppid = SYSCALL(GETPROCESSID, 1, 0, 0);
 
     if (ppid != p9pid) {

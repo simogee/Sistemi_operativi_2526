@@ -77,7 +77,6 @@ INIT_LIST_HEAD(&ready_queue);
 //metto root nella lista dei processi ready
 insertProcQ(&ready_queue, root);
 process_counter++;
-
 scheduler(); //dobbiamo ancora fare
 
 

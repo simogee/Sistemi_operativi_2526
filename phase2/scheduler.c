@@ -1,9 +1,17 @@
 #include "kernel.h"
-extern void klog_print(char *msg);
-extern void klog_print_dec(unsigned int num);
-extern void klog_print_hex(unsigned int num);
 
 void scheduler(){
+
+
+klog_print(" empty=");
+klog_print_hex(emptyProcQ(&ready_queue));
+klog_print(" proc=");
+klog_print_hex(process_counter);
+klog_print(" soft=");
+klog_print_hex(soft_block_counter);
+klog_print(" curr=");
+klog_print_hex((unsigned int)current_process);
+
   if (!emptyProcQ(&ready_queue)){
 
   current_process = removeProcQ(&ready_queue); // rimuovo il PCB dalla testa dei ready queue e lo metto come processo corrente (inizio a eseguire il processo)
