@@ -303,7 +303,9 @@ print("p1 v(sem_testsem)\n");
 
     pFiveSupport.sup_exceptContext[GENERALEXCEPT].stackPtr = (int)p5Stack;
     pFiveSupport.sup_exceptContext[GENERALEXCEPT].status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    pFiveSupport.sup_exceptContext[GENERALEXCEPT].pc = (memaddr)p5gen;
+    
+    pFiveSupport.sup_exceptContext[GENERALEXCEPT].pc = (memaddr)p5gen; // erra qui?
+    
     pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].stackPtr = p5Stack;
     pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].status |= MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].pc = (memaddr)p5mm;
@@ -313,7 +315,7 @@ print("p1 v(sem_testsem)\n");
     SYSCALL(CREATEPROCESS, (int)&p6state, PROCESS_PRIO_LOW, (int)NULL); /* start p6		*/
 
     SYSCALL(CREATEPROCESS, (int)&p7state, PROCESS_PRIO_LOW, (int)NULL); /* start p7		*/
-
+;
     p9pid = SYSCALL(CREATEPROCESS, (int)&p9state, PROCESS_PRIO_LOW, (int)NULL); /* start p7		*/
 
     SYSCALL(PASSEREN, (int)&sem_endp5, 0, 0); /* P(sem_endp5)		*/
@@ -489,7 +491,7 @@ void p4() {
     /* and eventually, the parent p4 will terminate, killing  */
     /* off both p4's.                                         */
 
-    p4state.reg_sp -= QPAGE; /* give another page  */
+    p4state.reg_sp -= QPAGE; /* give another page  */ // qui si rompe
 
     p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, PROCESS_PRIO_LOW, 0); /* start a new p4    */
 
@@ -510,6 +512,7 @@ void p4() {
 void p5gen()
 {
     unsigned int exeCode = pFiveSupport.sup_exceptState[GENERALEXCEPT].cause;
+    
     switch (exeCode)
     {
     // store access fault
@@ -532,7 +535,7 @@ void p5gen()
         break;
 
     default:
-        print("ERROR: other program trap\n");
+        print("ERROR: other program trap\n"); // errore qui execode :0 
         PANIC(); // to avoid sys call looping just exit the program
     }
 

@@ -9,35 +9,20 @@ void interruptHandler(state_t* ptr_exc);
 extern void klog_print(char *msg);
 extern void klog_print_dec(unsigned int num);
 extern void klog_print_hex(unsigned int num);
+void passup_or_die(int index);
 /*void uTLB_RefillHandler() {
 setENTRYHI(0x80000000);
 setENTRYLO(0x00000000);
 TLBWR();
 LDST((state_t*) BIOSDATAPAGE);
 }*/
-static int i = 0;
+
 void subTree_killer(pcb_t* p);
 
 void exception_handler(){
 
-    state_t *ptr_exc = GET_EXCEPTION_STATE_PTR(getPRID());//state_t* ptr_exc = (state_t*) BIOSDATAPAGE; // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
+    state_t* ptr_exc = (state_t*) BIOSDATAPAGE;// state_t *ptr_exc = GET_EXCEPTION_STATE_PTR(getPRID()); // puntiamo al bios_datapage per poter estrarre i valori dei campi necessari alla corretta gestione dell'exception
     unsigned int cause = ptr_exc->cause;
-
-    // klog_print("saved cause = ");
-    // klog_print_hex(ptr_exc->cause);
-    // klog_print("\n");
-    i++;
-    // klog_print("CAUSE_IS_INT(saved cause) = ");
-    // klog_print_hex(CAUSE_IS_INT(ptr_exc->cause));
-    // klog_print("\n");
-
-    // klog_print("excCode = ");
-    // klog_print_hex(ptr_exc->cause & CAUSE_EXCCODE_MASK);
-    // klog_print("\n\n");
-    // klog_print("i counter: ");
-    // klog_print_dec(i);
-    // klog_print("\n");
-    // bp();                                                                      
 
     if(CAUSE_IS_INT(cause)) //check most significant bit
     {
@@ -47,10 +32,12 @@ void exception_handler(){
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
         if (cause_code == 8 || cause_code == 11)
             syscallHandler(ptr_exc);
-       /* else if (cause_code >= 24 && cause_code <= 28)
-            //tlbHandler();
+        else if (cause_code >= 24 && cause_code <= 28) 
+            passup_or_die(PGFAULTEXCEPT);
+        else if( (cause_code >=0 && cause_code <= 7) || (cause_code == 9 || cause_code == 10)||(cause_code>=11 && cause_code<=23))
+            passup_or_die(GENERALEXCEPT); 
         else
-            trapHandler(); // no panic? */
+            PANIC();
     }
 
 }
@@ -396,16 +383,15 @@ void syscallHandler(state_t* ptr_exc){
                 Yield(ptr_exc);
                 break;
             default:
-
-                //trapHandler();
+                passup_or_die(GENERALEXCEPT);
         }
      }
-     else if(syscallnum< 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_U){
+     else if(syscallnum< 0 && (ptr_exc->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_U){ // syscall privilegiata fatta in usermode
         ptr_exc->cause = PRIVINSTR; // errore di permesso
-        //trapHandler();
+        passup_or_die(GENERALEXCEPT);
      }
-     else{ //richiesta insesistente
-        //trapHandler();
+     else{  // positive number syscall
+        passup_or_die(GENERALEXCEPT);
      }
     }
 
@@ -489,3 +475,15 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     }
 
 }
+
+ //** Sezione passup or die*/
+
+ void passup_or_die(int index){
+    if (current_process->p_supportStruct == NULL){ //die
+        subTree_killer(current_process);
+        scheduler();
+    }
+    current_process->p_supportStruct->sup_exceptState[index] = *GET_EXCEPTION_STATE_PTR(index);
+    context_t ctx_proc= current_process->p_supportStruct->sup_exceptContext[index];
+    LDCXT(ctx_proc.stackPtr,ctx_proc.status,ctx_proc.pc);
+ }

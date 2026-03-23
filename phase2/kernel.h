@@ -44,4 +44,10 @@ void bp();
 int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
 void interruptHandler(state_t* ptr_exc);
 
+
+/** Klog_prints */
+extern void klog_print(char *msg);
+extern void klog_print_dec(unsigned int num);
+extern void klog_print_hex(unsigned int num);
+
 #endif 
