@@ -31,6 +31,24 @@ void bp(){
 
 /**Questa funzione serve per aggiungere alla lista dei pcbs liberi il pcb puntato */
 void freePcb(pcb_t* p) {
+    //devo resettare i campi per evitare errori
+    p->p_parent = NULL;
+    p->p_pid = 0;
+    p->p_prio=0;
+    INIT_LIST_HEAD(&p->p_child);
+    INIT_LIST_HEAD(&p->p_sib);
+    INIT_LIST_HEAD(&p->p_list);
+    p->p_s.entry_hi = 0;
+    p->p_s.cause    = 0;
+    p->p_s.status   = 0;
+    p->p_s.pc_epc   = 0;
+    p->p_s.mie      = 0;
+    p->p_time          = 0;
+    p->p_semAdd        = NULL;
+    p->p_supportStruct = NULL;
+    for (int i = 0; i < STATE_GPR_LEN; ++i) {
+        p->p_s.gpr[i] = 0;
+    }
     list_add(&p->p_list,&pcbFree_h);
 }
 /**Questa funzione viene usata quando utilizziamo un pcb libero: lo inizializzamo a 0
@@ -183,6 +201,7 @@ pcb_t* outChild(pcb_t* p) {
     }
     // Rimuovi p dalla lista dei figli del padre
     list_del(&p->p_sib);
+    INIT_LIST_HEAD(&p->p_sib);
     // Segnala che non ha più un padre
     p->p_parent = NULL;
 
@@ -198,7 +217,7 @@ pcb_t* outChild(pcb_t* p) {
 pcb_t* findByPid(int pid){
     int i = 0;
     while(i < MAXPROC){
-        if(pcbFree_table[i].p_pid == pid)  // forse bisognerebbe fare un check per vedere se viene usata?
+        if(pcbFree_table[i].p_pid == pid)
             return &pcbFree_table[i];
         i++;
     }

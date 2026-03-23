@@ -85,6 +85,11 @@ void terminate_process(state_t* ptr_exc){
 // se ptr_exc->reg_a1 = 0 allora termino current_process
 // altrimenti cerco il pid relativo.
 pcb_t* process_to_kill = NULL;
+klog_print("TERM req pid=");
+    klog_print_dec(ptr_exc->reg_a1);
+    klog_print(" current=");
+    klog_print_dec(current_process ? current_process->p_pid : -1);
+    klog_print("\n");
 
 if(ptr_exc->reg_a1 == 0){
     process_to_kill = current_process; 
@@ -92,8 +97,40 @@ if(ptr_exc->reg_a1 == 0){
 else{
     process_to_kill = findByPid(ptr_exc->reg_a1); 
 }
+    klog_print("TERM victim ptr=");
+    klog_print_hex((unsigned int)process_to_kill);
+    klog_print(" pid=");
+    klog_print_dec(process_to_kill ? process_to_kill->p_pid : -1);
+    klog_print(" parent=");
+    klog_print_dec(process_to_kill && process_to_kill->p_parent ? process_to_kill->p_parent->p_pid : -1);
+    klog_print("\n");
 if(process_to_kill != NULL){ // esiste il processo da uccidere
+    klog_print("BEFORE outChild ptr=");
+klog_print_hex((unsigned int)process_to_kill);
+klog_print(" pid=");
+klog_print_hex((unsigned int)process_to_kill->p_pid);
+klog_print(" p_sib.next=");
+klog_print_hex((unsigned int)process_to_kill->p_sib.next);
+klog_print(" p_sib.prev=");
+klog_print_hex((unsigned int)process_to_kill->p_sib.prev);
+klog_print(" parent=");
+klog_print_hex((unsigned int)process_to_kill->p_parent);
+klog_print("\n");
     outChild(process_to_kill); // stacchiamo il processo dalla radice
+
+
+klog_print("AFTER outChild ptr=");
+klog_print_hex((unsigned int)process_to_kill);
+klog_print(" pid=");
+klog_print_hex((unsigned int)process_to_kill->p_pid);
+klog_print(" p_sib.next=");
+klog_print_hex((unsigned int)process_to_kill->p_sib.next);
+klog_print(" p_sib.prev=");
+klog_print_hex((unsigned int)process_to_kill->p_sib.prev);
+klog_print(" parent=");
+klog_print_hex((unsigned int)process_to_kill->p_parent);
+klog_print("\n");
+bp();
     subTree_killer(process_to_kill);
 }
 if(current_process != NULL){
@@ -104,10 +141,37 @@ scheduler();
 
 }
 void subTree_killer(pcb_t* p){
-    klog_print("PID=");
-    klog_print_hex((unsigned int)p->p_pid); // loop eterno?
+    klog_print("ENTER p=");
+    klog_print_hex((unsigned int)p);
     klog_print("\n");
+    klog_print(" pid=");
+    klog_print_hex((unsigned int)p->p_pid);
+    klog_print("\n");
+    klog_print(" parent=");
+    klog_print_hex((unsigned int)p->p_parent);
+    klog_print("\n");
+    klog_print(" &p_child=");
+    klog_print_hex((unsigned int)&p->p_child);
+    klog_print("\n");
+    klog_print(" child.next=");
+    klog_print_hex((unsigned int)p->p_child.next);
+    klog_print("\n");
+    klog_print(" child.prev=");
+    klog_print_hex((unsigned int)p->p_child.prev);
+    klog_print("\n");
+    klog_print(" empty=");
+    klog_print_hex(emptyChild(p));
+    klog_print("\n");
+    klog_print("\n");
+    bp();
     while(!emptyChild(p)){ // ricorsivo
+        klog_print("E' ENTRATO"); // non doveva entrare..
+        klog_print_hex((unsigned int)p->p_child.next);
+        klog_print("\n");
+        klog_print(" child.prev=");
+        klog_print_hex((unsigned int)p->p_child.prev);
+        klog_print("\n");
+        bp();
         pcb_t* child = removeChild(p);
         subTree_killer(child);
     }
