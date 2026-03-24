@@ -20,8 +20,7 @@ void initPcbs() {
     for(int i = 0; i < MAXPROC;i++)
     {
        list_add(&pcbFree_table[i].p_list,&pcbFree_h);
-       pcbFree_table[i].p_pid = next_pid;
-       next_pid++;
+       pcbFree_table[i].p_pid = -1;
     }
 
 }
@@ -33,7 +32,7 @@ void bp(){
 void freePcb(pcb_t* p) {
     //devo resettare i campi per evitare errori
     p->p_parent = NULL;
-    p->p_pid = 0;
+    p->p_pid = -1; // li metto ad un valore non "sano"
     p->p_prio=0;
     INIT_LIST_HEAD(&p->p_child);
     INIT_LIST_HEAD(&p->p_sib);

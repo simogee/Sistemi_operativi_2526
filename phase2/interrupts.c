@@ -1,7 +1,5 @@
 #include "kernel.h"
-extern void klog_print(char *msg);
-extern void klog_print_dec(unsigned int num);
-extern void klog_print_hex(unsigned int num);
+
 //lower number line higher prio if two interrupt per device should solve the one with highest prio
 //1. PLT highest prio 2. Interval Timer
 //per terminali la trasmissione ha prio piu' alta rispetto ai recv
@@ -12,13 +10,9 @@ void interruptHandler(state_t* ptr_exc){
     
     unsigned int cause = ptr_exc->cause;
     unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; 
-    // klog_print("\n\ninterrupt cause code:\n");
-    // klog_print_hex(cause_code);
-    // klog_print("\n");
-    // bp();
+  
     int intline;
-    // klog_print("cause=");
-    // klog_print_hex(ptr_exc->cause); // exit cause 51?? 17 volte- 18 esima crash !!!30esima ora!!!
+
     if (cause_code == IL_CPUTIMER) {
         intline = 1;
     }
@@ -107,15 +101,7 @@ void interruptHandler(state_t* ptr_exc){
         devON <<= 1;
         devNo++;
         if(devNo > 7){
-            // klog_print("cause=");
-            // klog_print_hex(ptr_exc->cause);
-            // klog_print("\ninterrupt cause code:\n");
-            // klog_print_hex(cause_code);
-            // klog_print("\n intlineno:");
-            // klog_print_dec(intline);
-            // klog_print("\ndevno:");
-            // klog_print_dec(devNo);
-            klog_print("\ndev non trovato?"); //-> qui si blocca
+            klog_print("\ndev non trovato?"); 
             bp();
             PANIC();
         } 

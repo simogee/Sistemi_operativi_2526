@@ -43,7 +43,7 @@ void scheduler();
 void bp();
 int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
 void interruptHandler(state_t* ptr_exc);
-
+void uTLB_RefillHandler();
 
 /** Klog_prints */
 extern void klog_print(char *msg);
