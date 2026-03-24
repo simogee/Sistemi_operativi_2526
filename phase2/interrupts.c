@@ -68,7 +68,7 @@ void interruptHandler(state_t* ptr_exc){
     //**
     // ACK interrupt load intervaltimer 100ms(PSECONDS),LDIT(PSECONDS)
     // Unblock all PCBs waiting a pseudo-clock tick e put in readyqueue.  pseudo_clock_sem= [48] Fai una funzione di sblocco e decremento di soft_block_counter
-    // return control to current process if exists LDST(ptr_exc); 
+    // return control to current process if exists LDST(ptr_exc); altrimenti scheduler()
     //  */
    else if(intline == 2){
     //ack
@@ -84,7 +84,7 @@ void interruptHandler(state_t* ptr_exc){
    }
 
     //caso Device-generico 
-    // Va individuato il device che ha il pending interrupt, calcolato il device address base
+    // Va individuato il device che ha il pending interrupt poi calcolato il device address base
     // salvare lo status code
     // scrivere ACK nel registro command del device
     // Fare una V sul semaforo relativo al device fatto.
@@ -194,7 +194,7 @@ void unblock_pseudoclock(){
     *pseudo_clock_sem =0; //reset del valore del semaforo
 
 }
-
+//same as before ma generica per i devices. si potrebbe collassare tutto in un unica funzione ma preferisco tenerle separate per una questione "didattica"
 pcb_t* unblock_devicesem(int* semaddr){
     pcb_t* blocked_process = NULL;
     (*semaddr)++;

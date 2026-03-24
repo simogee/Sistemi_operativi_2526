@@ -1,21 +1,12 @@
 
 #include "kernel.h"
-/** tlb refill da fare o no? presente gia' in p2test */
+
 void exception_handler();
-void syscallHandler();
-void uTLB_RefillHandler();
-int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
-void interruptHandler(state_t* ptr_exc);
+static void syscallHandler();
+static void passup_or_die(int index);
+static void subTree_killer(pcb_t* p);
 
-void passup_or_die(int index);
-/*void uTLB_RefillHandler() {
-setENTRYHI(0x80000000);
-setENTRYLO(0x00000000);
-TLBWR();
-LDST((state_t*) BIOSDATAPAGE);
-}*/
 
-void subTree_killer(pcb_t* p);
 
 void exception_handler(){
 
@@ -409,54 +400,6 @@ void syscallHandler(state_t* ptr_exc){
     }
 
 
-
-
-
-/**
- * Funzione per rimuovere tutto il subtree dato un processo
- * Preso un processo: check figlio, se esiste richiamiamo subTree_killer su child ricorsivamente una volta che non esiste più un child:
- *      check se si trova su un semaforo:
- *              se si allora soft_block_counter --; e rimozione dal semaforo
- *      check se si trova sulla ready queue:
- *              rimozione dalla readyqueue;
- *      check se e' il current_process:
- *              dereferenziamo current_process
- * 
- *      process_counter-- e liberiamo il pcb
- * freePcb(processo);     
- */
-
-
-
-
-// void subTree_killer(pcb_t* p){
-//     while(!emptyChild(p)){
-//         pcb_t* child = removeChild(p);
-//         subTree_killer(child);
-//     }
-//     if(p == current_process){
-//         current_process = NULL; // per dereferenziare il pcb_t*
-//     }
-//     else if(p->p_semAdd != NULL){ // si trova su un semaforo
-//         (*(p->p_semAdd))++;
-//         outBlocked(p);
-//         soft_block_counter--;
-//     }
-//     else{                        //non si trova su un semaforo check readyqueue 
-//         outProcQ(&ready_queue,p);
-//     }
-//     process_counter--;
-//     freePcb(p);
-// }
-
-/** devo rimuovere un processo: il processo si trova solo in readyqueue, current_process o su un semaforo di un device
- * Ora: terminate mi passa il pcb da killare.terminate
- * outChild per rimuovere qualsiasi collegamento con il padre.
- * aggiorno il p counter 
- * Cerco di capire dove si trova: semafori, current process o readyqueue?
- */
-
-
 // ritorna l'indice del semaforo data la line e il numero.
 /*linea 3:[0..7]disk linea 4:flash [8..15] linea 5:eth [16..23] linea 6:printer [24..31] linea 7:terminali [32..47] semaforo[48] e' lo pseudoclock*/
 int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
@@ -464,7 +407,7 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     //se 7 allora devo capire se è un dev di ricezione o di invio.
 
     switch(IntlineNo){
-        //casi device normalisaved cause = B���������������������������CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               commandreg = 06200001                     command value = 2007                      saved cause = 51000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 51                                                                       
+        //casi device normali
         case 3: 
         //offset 0
         return &device_sem[devNo];

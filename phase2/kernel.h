@@ -27,7 +27,6 @@
  * Quando il dispositivo ha finito, invia l'interrupt e il processore quando riesce fa la V spostando il processo bloccato di nuovo nella coda.
  */
 
-
 /* qui variabili vengono "promesse" al linker*/
 #define PSEUDO_CLOCK_SEM_INDEX (SEMDEVLEN - 1) //indice del semaforo pseudo-clock
 #define DEVREGBASE 0x10000054
@@ -40,14 +39,15 @@ extern int* pseudo_clock_sem; // questo indirizzo sarà solo per lo pseudoclock
 extern cpu_t slice_start; // momento di inizio esecuzione processo
 /** funzioni */
 void scheduler();
-void bp();
+
 int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
 void interruptHandler(state_t* ptr_exc);
 void uTLB_RefillHandler();
 
-/** Klog_prints */
+/** Klog_prints e bp */
 extern void klog_print(char *msg);
 extern void klog_print_dec(unsigned int num);
 extern void klog_print_hex(unsigned int num);
+void bp();
 
 #endif 

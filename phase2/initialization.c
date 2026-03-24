@@ -3,30 +3,30 @@ extern void uTLB_RefillHandler(), test(),exception_handler(),bp(),klog_print(cha
 /**
  * Cosa fa initialization
  *
- *inizializza il Pass-Up Vector -> il passup vector è un vettore i cui campi puntano alle funzioni interrupt handlers (indirizzo: 0x0FFFF900)
+ * inizializza il Pass-Up Vector -> il passup vector è un vettore i cui campi puntano alle funzioni interrupt handlers (indirizzo: 0x0FFFF900)
  *
  *
  * Inizializzare le strutture dati della phase1, includere quindi i file della fase precedente
  *
  * Inizializzare le strutture dati e variabili phase2 initPcbs() e initASL()
  *
- * Load the system-wide interval Timer con 100 ms -> no idea atm.
+ * Load the system-wide interval Timer con 100 ms -> TOD si aggiorna ogni 100 ms
  *
- * Istanziare un process test
+ * Istanziare un process test(che sarà il root process)
  *
  *
  * Chiamare lo scheduler
  *
  */
-/* qui vengono effettivamente definite, non in kernel.h*/
+
 int process_counter; //Quanti processi attualmente presenti
-int soft_block_counter; //Quanti processi "Blocked" (ASL)
+int soft_block_counter; //Quanti processi "Blocked" (ASL) semafori device e pseudo_clock
 struct list_head ready_queue; // coda dei processi
 pcb_t* current_process;
 int device_sem [SEMDEVLEN]; // un sem per device + 1 per pseudo-clock
 int* pseudo_clock_sem = &device_sem[PSEUDO_CLOCK_SEM_INDEX]; // questo indirizzo sara+ solo per lo pseudoclock
-cpu_t slice_start;
-extern void test();
+cpu_t slice_start; // tempo per PLT
+
 
 /**funzione da  gcc/libgcc/memcpy.c usata dal compilatore per copiare */
 void *memcpy(void *dest, const void *src, unsigned int len)
