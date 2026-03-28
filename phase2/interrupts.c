@@ -136,7 +136,7 @@ void interruptHandler(state_t* ptr_exc){
         int *semaddr;
         pcb_t *unlocked_proc;
         //trasmission is higher prio than recv
-        if((tran_status & 0xFF) != READY){
+        if((tran_status & 0xFF) == OKCHARTRANS){
             status_save = tran_status;
             command_addr = devaddrb + TRANCOMMAND * DEVREGLEN;
             

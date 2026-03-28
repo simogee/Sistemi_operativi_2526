@@ -246,7 +246,7 @@ void DoIO(state_t* ptr_exc){
         //DEVREGLEN = ampiezza di un registro all'interno del device
         memaddr commandreg = ptr_exc->reg_a1;
         
-        memaddr offset = (commandreg - START_DEVREG);  // ritorna la distanza dall'indirizzo base dei devices.
+        memaddr offset = (commandreg - START_DEVREG);  // ritorna la distanza dall'indirizzo base dei devices(START_DEVREG).
         //con l'offset ora dobbiamo capire su quale linea e quale device ci si trova.
         memaddr inneroffset = offset % DEVREGSIZE;  //quanto sono distante dall'inzio del device.
         if(inneroffset != 0x04 && inneroffset != 0x0C){
@@ -258,7 +258,7 @@ void DoIO(state_t* ptr_exc){
         memaddr devbase = commandreg - inneroffset; //abbiamo l'indirizzo base del device.
         memaddr devoffset = (devbase - START_DEVREG); // troviamo l'offset del device 
 
-        int IntlineNo = 3 + (devoffset / (DEVREGSIZE * DEVPERINT)); // trovata la linea ora 
+        int IntlineNo = 3 + (devoffset / (DEVREGSIZE * DEVPERINT)); // trovata la linea  
         if(IntlineNo < 3 || IntlineNo > 7){
             klog_print("intlineno errato");
             bp();
@@ -274,7 +274,7 @@ void DoIO(state_t* ptr_exc){
             PANIC();
         }
         *((unsigned int*)commandreg) = ptr_exc->reg_a2;
-        block_sync(semadr,ptr_exc);
+        block_sync(semadr,ptr_exc); 
 
 }
 
@@ -410,51 +410,6 @@ void syscallHandler(state_t* ptr_exc){
 
 
 
-
-
-/**
- * Funzione per rimuovere tutto il subtree dato un processo
- * Preso un processo: check figlio, se esiste richiamiamo subTree_killer su child ricorsivamente una volta che non esiste più un child:
- *      check se si trova su un semaforo:
- *              se si allora soft_block_counter --; e rimozione dal semaforo
- *      check se si trova sulla ready queue:
- *              rimozione dalla readyqueue;
- *      check se e' il current_process:
- *              dereferenziamo current_process
- * 
- *      process_counter-- e liberiamo il pcb
- * freePcb(processo);     
- */
-
-
-
-
-// void subTree_killer(pcb_t* p){
-//     while(!emptyChild(p)){
-//         pcb_t* child = removeChild(p);
-//         subTree_killer(child);
-//     }
-//     if(p == current_process){
-//         current_process = NULL; // per dereferenziare il pcb_t*
-//     }
-//     else if(p->p_semAdd != NULL){ // si trova su un semaforo
-//         (*(p->p_semAdd))++;
-//         outBlocked(p);
-//         soft_block_counter--;
-//     }
-//     else{                        //non si trova su un semaforo check readyqueue 
-//         outProcQ(&ready_queue,p);
-//     }
-//     process_counter--;
-//     freePcb(p);
-// }
-
-/** devo rimuovere un processo: il processo si trova solo in readyqueue, current_process o su un semaforo di un device
- * Ora: terminate mi passa il pcb da killare.terminate
- * outChild per rimuovere qualsiasi collegamento con il padre.
- * aggiorno il p counter 
- * Cerco di capire dove si trova: semafori, current process o readyqueue?
- */
 
 
 // ritorna l'indice del semaforo data la line e il numero.
