@@ -8,3 +8,11 @@ Dobbiamo inizializzare le strutture dati condivise tra
 */
 
 support_t supportTable[UPROCMAX]; // tabella statica dove per ogni processo con ASID viene salvata la struttura support_t. Ogni PCB ci può accedere tramite support_t *p_supportStruct;
+
+int masterSemaphore;
+int shellSemaphore;
+
+int flashSemaphore[]; //??
+
+int readTerm;
+int writeTerm;

@@ -14,4 +14,14 @@ extern int flashSemaphore[];
 extern int readTerm;
 extern int writeTerm;
 
+
+
+/*funzioni generali*/
+//inizializzazione strutture condivise(swap pool table)
+void initSwapPoolTable();
+//creazione U-proc
+//pager
+//general exception handler
+//program trap handler
+
 #endif
