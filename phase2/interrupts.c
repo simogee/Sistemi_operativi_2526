@@ -131,7 +131,7 @@ void interruptHandler(state_t* ptr_exc){
         //bisogna distinguere se è un recv terminal o trasmit terminal: 
         unsigned int recv_status = *((unsigned int*)(devaddrb + RECVSTATUS * DEVREGLEN));
         unsigned int tran_status = *((unsigned int*)(devaddrb + TRANSTATUS * DEVREGLEN)); // prendo entrambi gli status e poi confronto
-        unsigned int status_save;
+        unsigned int status_save; // dove salverò poi lo status
         memaddr command_addr;
         int *semaddr;
         pcb_t *unlocked_proc;

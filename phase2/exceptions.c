@@ -114,7 +114,7 @@ void subTree_killer(pcb_t* p){
         current_process = NULL;
     }
     else if(p->p_semAdd != NULL){ // è in un semaforo
-         int *sem = p->p_semAdd;
+        int *sem = p->p_semAdd;
         //distinguo semaforo device/timer da semafori non mantenuti da kernel
         if(p->p_semAdd >= &device_sem[0] && p->p_semAdd <= &device_sem[SEMDEVLEN-1]) // è un semaforo mantenuto dal kernel
         {
@@ -222,11 +222,10 @@ void block_sync(int* semaddr, state_t* ptr_exc){
 /**
 Doio si occupa di scrivere il comando sul registro del device e poi bloccare il processo sul semaforo relativo al device. Una volta salvato tutto con pc aggiornato richiama lo scheduler. */
 void DoIO(state_t* ptr_exc){
-
     //dovremo gestire i device normali e i terminali: nei device normali ritorna in reg_a0 la word dello status, nei terminali si ritorna status+ char inviato o ricevuto
-    // linea 3 disk, 4 flash, 5 ethernet,6 printer. ognuno ha 8 device 32 totali.
-    // linea 7 terminali con 2 sub-device 16 totali
-    // 1 e' pseudoclock
+    //linea 3 disk, 4 flash, 5 ethernet,6 printer. ognuno ha 8 device 32 totali.
+    //linea 7 terminali con 2 sub-device 16 totali
+    //1 e' pseudoclock
         /* Bisogna quindi scegliere una convenzione: [0..7] disk [8..15] flash [16..23] eth [24..31] printer. [32..47] terminali [48]-> pseudo_clock_sem*/
         /* un device e' individuato da un interrupt line(valore 3,4,5) e un device number. Per i terminali anche un valore tx rx per indicare che tipo e'
             Ho indirizzo di COMMAND del device. da questo devo dedurre la linea e dev num
@@ -334,7 +333,7 @@ void Yield(state_t* ptr_exc){
         current_process = substitute_proc;
         //schedulo manualmente
         STCK(slice_start); 
-        setTIMER(TIMESLICE);
+        setTIMER(TIMESLICE * *(*unsigned int(TIMESCALEADDR)));
         LDST(&current_process->p_s);
    }
 }
@@ -419,7 +418,7 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     //se 7 allora devo capire se è un dev di ricezione o di invio.
 
     switch(IntlineNo){
-        //casi device normalisaved cause = B���������������������������CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               saved cause = 70000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 7                               saved cause = B                           CAUSE_IS_INT(saved cause) = 0             excCode = B                               commandreg = 06200001                     command value = 2007                      saved cause = 51000008                    CAUSE_IS_INT(saved cause) = 00000008      excCode = 51                                                                       
+        //casi device normali 
         case 3: 
         //offset 0
         return &device_sem[devNo];

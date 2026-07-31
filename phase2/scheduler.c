@@ -13,7 +13,7 @@ void scheduler(){
   
   }
   if (process_counter == 0){ 
-   HALT();
+    HALT();
    }  
   if (process_counter >0 && soft_block_counter >0){
     setMIE(MIE_ALL  & ~MIE_MTIE_MASK);
