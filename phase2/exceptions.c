@@ -333,7 +333,7 @@ void Yield(state_t* ptr_exc){
         current_process = substitute_proc;
         //schedulo manualmente
         STCK(slice_start); 
-        setTIMER(TIMESLICE * *(*unsigned int(TIMESCALEADDR)));
+        setTIMER(TIMESLICE * (*((unsigned int *)TIMESCALEADDR)));
         LDST(&current_process->p_s);
    }
 }
