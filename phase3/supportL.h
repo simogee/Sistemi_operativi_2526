@@ -76,8 +76,20 @@
  * Ordine operazioni del Pager:
  *  Quando aggiorni backing store  prima va fatto  update del page Table e TLB prima di scrittura su bckstr.
  *  Quando leggi dal backing store, prima lettura di aggiornamento page table e TLB.
- * Risposta al thought: per la prima, se aggiorno il backing store prima dell'aggiornamento... TODO 5.4 in poi
- */         
+ * Risposta al thought: caso scrittura BS prima di invalidazione: significa che il processo A può ancora accedere alla pagina k modificandone il contenuto, quindi potrebbe portare ad uno stato incoerente dei dati da scrivere in BS.
+ *                      caso aggiornamento TLB e page table prima di scrittura in frame: processo B potrebbe richiedere accesso a frame F che però contiene ancora i dati vecchi.
+ * Per entrambe situazioni è necessario disabilitare gli interrupt per permettere azioni atomiche.
+ * Risposta al thought 2: Se page table e tlb non sono aggiornati atomically succede che ci troviamo in uno stato di incoerenza nelle tabelle:
+ *                        Pagina P dev'essere invalidata, lo scriviamo su page Table. Avviene interrupt e legge TLB con la vecchia entry -> accediamo alla vecchia pagina che dovrebbe essere invalidata.
+ *                        Pagina P dev'essere invalidata, lo scriviamo su TLB. Avviene interrupt, legge TLB: invalida, va in page table: valida, ricopia in TLB e accede ugualmente alla pagina che doveva essere invalida
+ *                        Entrambi i casi violiamo la garanzia.
+ * Algoritmo rimpiazzamento: static FIFO.
+ * Support Level General Exception: SYSCALL livello utente, Trap.
+ *              SYSCALL: terminate(wrapper), write e read terminal -> sospensione processo fino a fine del input/output, execute-> crea un processo, processo che chiama questa syscall viene sospeso fino a termine del sub-proc(P shellsem)
+ * Trap handler: si chiama la terminate(wrapper): attenzione a rilasciare i semafori se questi erano stati presi.
+ *
+ */                     
+
 /*semafori per garantire che processo padre non lasci orfani i figli */
 extern int masterSemaphore; //semaforo del primo processo: viene fatta V solo quando la shell lanciata termina init 0
 extern int shellSemaphore; //semaforo di tutti i processi lanciati dalla shell. viene fatta la V solo quando l'ultimo processo lanciato muore. init 0
