@@ -93,25 +93,28 @@
 /*semafori per garantire che processo padre non lasci orfani i figli */
 extern int masterSemaphore; //semaforo del primo processo: viene fatta V solo quando la shell lanciata termina init 0
 extern int shellSemaphore; //semaforo di tutti i processi lanciati dalla shell. viene fatta la V solo quando l'ultimo processo lanciato muore. init 0
-
+extern int swapPoolSemaphore;// semaforo per garantire accesso esclusivo all'area di swap pool
 /*semaforo per garantire mutua esclusione dei flash device*/
 extern int flashSemaphore[UPROCMAX]; // usati per mutua esclusione tutti init a 1
 
 /*semafori per lettura/scrittura shell*/
-extern int readTerm;
-extern int writeTerm;
+extern int readTermsemaphore;
+extern int writeTermsemaphore;
+
 
 
 
 /*funzioni generali*/
+//inizializzazione test
+void test();
 //inizializzazione strutture condivise(swap pool table)
 void initSwapPoolTable();
 //creazione U-proc
-void process_creation(){
-
-}
+int processCreation(int asid);
 //pager
+void pager();
 //general exception handler
+void generalExceptionHandler();
 //program trap handler
 
 #endif
