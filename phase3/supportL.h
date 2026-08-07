@@ -3,7 +3,7 @@
 
 #include "../headers/types.h"
 #include "../headers/const.h"
-
+#include <uriscv/types.h>
 /**
  * In questa fase dobbiamo gestire le eccezioni che passavamo al livello superiore nella scorsa fase, che sono:
  *  TLB e page fault -> tlb è nei file della fase 2 ma dobbiamo aggiornarlo
@@ -114,7 +114,8 @@ int processCreation(int asid);
 //pager
 void pager();
 //general exception handler
-void generalExceptionHandler();
-//program trap handler
+void *generalExceptionHandler();
+
+
 
 #endif
