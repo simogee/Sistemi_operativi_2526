@@ -9,4 +9,4 @@ void initSwapTable(){}
 void writeIntoDev();
 void readIntoMem();
 //pager
-void pager();
+void pager(){}

@@ -17,6 +17,7 @@ int flashSemaphore[UPROCMAX];
 
 int readTermsemaphore;
 int writeTermsemaphore;
+int swapPoolSemaphore;
 // dall'asid seleziono il supportTable[asid-1] e poi guardo i campi della support_t(headers/types.h) e li aggiorno
 
 //funzione per eliminare lo stato precedente del processo
@@ -31,18 +32,26 @@ void resetState(state_t* stato){
     stato->status = 0; //status indica se la cpu è abilitata a ricevere gli interrupt e il modo: MPP-> modo di esecuzione, MIE-> interrupt globalmente abilitati,MPIE-> ripristino interrupt dopo eccezione(ricorda pre eccezione)
                        // per modifiche si usano maschere di bit
 }
-
+//inizializziamo lo stato di un Uproc
+void initState(state_t*stato,int asid){
+    resetState(stato); // per sicurezza cancelliamo tutto ciò che poteva essere scritto in precedenza
+    stato->pc_epc = 0x800000B0;
+    stato->status = MSTATUS_MPP_U | MSTATUS_MPIE_MASK; // mie interrupt abilitati, mpie interrupt abilitati quando stato viene ripristinato. Qui diciamo quando verrà ripristinato stato futuro(perchè inizializziamo)
+    stato->reg_sp = 0xC0000000;
+    stato->mie = MIE_ALL;
+    stato->entry_hi= (asid << ASIDSHIFT);
+}
 //come scritto nelle side: solo sup_asid,sup_exceptContext[2], and sup_privatePgTbl[32] richiedono init prima di richiesta di creazione processo
 void initSupportStructure(int asid){
     support_t* supportProc = &supportTable[asid-1];
     supportProc->sup_asid = asid;
 
-    supportProc->sup_exceptContext[PGFAULTEXCEPT].pc = &pager;
+    supportProc->sup_exceptContext[PGFAULTEXCEPT].pc =(unsigned int)pager;
     supportProc->sup_exceptContext[PGFAULTEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK; //kernel mode con tutti gli interrupt abilitati
-    supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=&(supportProc->sup_stackTLB[499]);
-    supportProc->sup_exceptContext[GENERALEXCEPT].pc = &generalExceptionHandler;
+    supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=(unsigned int)(supportProc->sup_stackTLB[499]);
+    supportProc->sup_exceptContext[GENERALEXCEPT].pc = (unsigned int)generalExceptionHandler;
     supportProc->sup_exceptContext[GENERALEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK;
-    supportProc->sup_exceptContext[GENERALEXCEPT].stackPtr=&(supportProc->sup_stackGen[499]);
+    supportProc->sup_exceptContext[GENERALEXCEPT].stackPtr=(unsigned int)(supportProc->sup_stackGen[499]);
 
     /*indirizzo base e stack*/
     unsigned int start_addr=0x80000;
@@ -62,13 +71,22 @@ void initSupportStructure(int asid){
 }
 
 
-void initDevSemaphore(int fls_dev){
+void initDevSemaphore(int* fls_dev){
     for(int i = 0; i< UPROCMAX;i++){
         flashSemaphore[i] = 1;
     }
 }
 //prende da support table supportTable[asid-1],inizializza la support struct(initSupportStructure), prepara lo state iniziale-> registri puntati correttamente, user mode, interrupt abilitati, asid in entry_hi e chiama create process(Kernel)
 void processCreation(int asid){
+    if(asid <= 0 || asid > UPROCMAX){
+        PANIC();
+    }
+    state_t processState;
+    support_t* processSupport= &supportTable[asid-1];
+    initSupportStructure(asid);
+    initState(&processState,asid);
+    SYSCALL(CREATEPROCESS,((unsigned int)&processState),PROCESS_PRIO_LOW,((unsigned int)processSupport)); //Si farà così? dubbio
+    
 
 }
 /**inizializza swap pool table e semaforo, inizializza tutti i semafori, crea processo shell, fa P su masterSemaphore e poi TermProcess(kernel) */
@@ -78,5 +96,9 @@ void test(){
 
     readTermsemaphore = 1;
     writeTermsemaphore = 1;
-
+    swapPoolSemaphore = 1;
+    initDevSemaphore(flashSemaphore);
+    processCreation(1);//shell
+    SYSCALL(PASSEREN,((unsigned int)&masterSemaphore),0,0);
+    SYSCALL(TERMINATE,1,0,0); //termino il processo test
 }

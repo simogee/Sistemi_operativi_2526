@@ -4,6 +4,7 @@
 #include "../headers/types.h"
 #include "../headers/const.h"
 #include <uriscv/types.h>
+#include "../phase2/kernel.h"
 /**
  * In questa fase dobbiamo gestire le eccezioni che passavamo al livello superiore nella scorsa fase, che sono:
  *  TLB e page fault -> tlb è nei file della fase 2 ma dobbiamo aggiornarlo
@@ -110,7 +111,7 @@ void test();
 //inizializzazione strutture condivise(swap pool table)
 void initSwapPoolTable();
 //creazione U-proc
-int processCreation(int asid);
+void processCreation(int asid);
 //pager
 void pager();
 //general exception handler
