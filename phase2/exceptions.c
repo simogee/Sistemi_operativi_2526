@@ -8,12 +8,9 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset);
 void interruptHandler(state_t* ptr_exc);
 
 void passup_or_die(int index);
-/*void uTLB_RefillHandler() {
-setENTRYHI(0x80000000);
-setENTRYLO(0x00000000);
-TLBWR();
-LDST((state_t*) BIOSDATAPAGE);
-}*/
+
+
+
 
 void subTree_killer(pcb_t* p);
 
