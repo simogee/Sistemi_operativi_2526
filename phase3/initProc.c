@@ -17,7 +17,7 @@ int flashSemaphore[UPROCMAX];
 
 int readTermsemaphore;
 int writeTermsemaphore;
-int swapPoolSemaphore;
+
 // dall'asid seleziono il supportTable[asid-1] e poi guardo i campi della support_t(headers/types.h) e li aggiorno
 
 //funzione per eliminare lo stato precedente del processo
