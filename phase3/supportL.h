@@ -4,6 +4,7 @@
 #include "../headers/types.h"
 #include "../headers/const.h"
 #include <uriscv/types.h>
+#include <uriscv/liburiscv.h>
 #include "../phase2/kernel.h"
 /**
  * In questa fase dobbiamo gestire le eccezioni che passavamo al livello superiore nella scorsa fase, che sono:

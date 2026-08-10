@@ -1,6 +1,6 @@
 
 #include "kernel.h"
-/** tlb refill da fare o no? presente gia' in p2test */
+
 void exception_handler();
 void syscallHandler();
 void uTLB_RefillHandler();
@@ -464,3 +464,14 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
     
  }
  
+
+ /** utlbrefill deve aver accesso alle strutture dati globali di phase2, indirizzo stack: 0x2000.0000(kernel stack)
+ * Cosa deve fare: 1. accedere alla savedException(perchè siamo in un momento eccezione), questo si fa come in fase 2 dove prendiamo la saved_except dal biosDatapage.
+ *                 2. avendo accesso al current process, cerchiamo nella sua supp struct la pagina che stiamo cercando(contenuta nella page_table)
+ *                 3. Scriviamo: setEntryHI, setEntryLO e TLBWR(): pteEntry_t della pagina che ho determinato questa contiene:  pte_entryHI e LO, devo solamente passarli a set.
+ *                 4. Come quando si finiva in phase2 LDST(), non è necessario incrementare il pc perchè al tentativo successivo non si verificherà l'eccezione.
+ */
+
+void uTLB_RefillHandler(){
+
+}

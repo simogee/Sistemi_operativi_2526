@@ -42,13 +42,3 @@ void readIntoMem();
 //pager
 void pager(){}
 
-/** utlbrefill deve aver accesso alle strutture dati globali di phase2, indirizzo stack: 0x2000.0000(kernel stack)
- * Cosa deve fare: 1. accedere alla savedException(perchè siamo in un momento eccezione), questo si fa come in fase 2 dove prendiamo la saved_except dal biosDatapage.
- *                 2. avendo accesso al current process, cerchiamo nella sua supp struct la pagina che stiamo cercando(contenuta nella page_table)
- *                 3. Scriviamo: setEntryHI, setEntryLO e TLBWR()
- *                 4. Come quando si finiva in phase2 LDST(), non è necessario incrementare il pc perchè al tentativo successivo non si verificherà l'eccezione.
- */
-
-void uTLB_RefillHandler(){
-
-}
