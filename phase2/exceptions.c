@@ -473,5 +473,17 @@ int* sem_index_from_dev(int IntlineNo, int devNo,memaddr inneroffset){
  */
 
 void uTLB_RefillHandler(){
-
+    state_t* savedState = (state_t *)BIOSDATAPAGE; //review: biosDatapage è una zona di memoria in cui viene salvato lo stato della cpu al momento di un eccezione.
+    pteEntry_t* pageTable = current_process->p_supportStruct->sup_privatePgTbl;  //otteniamo la page table del processo corrente.
+    unsigned int pageMissing = ((savedState->entry_hi & GETPAGENO) >> VPNSHIFT); //dal registro entryHi usiamo la maschera GETPAGENO per isolare il VPN dal asid e poi shiftiamo a destra(contrario di quando si salva sul registro) per ottenere la pagina
+    int pageIndex;
+    if(pageMissing == 0xBFFFF){ // è forse poco elegante ma fa il suo lavoro
+        pageIndex=31;
+    }else{
+        pageIndex = pageMissing - 0x80000; // ottengo l'indice della pageTable relativo  TODO: di sicuro esiste una costante per 0x80000
+    }
+    setENTRYHI(pageTable[pageIndex].pte_entryHI);
+    setENTRYLO(pageTable[pageMissing].pte_entryLO);
+    TLBWR(); // scrive sul TLB
+    LDST(savedState);
 }
