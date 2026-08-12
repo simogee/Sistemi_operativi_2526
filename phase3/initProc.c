@@ -96,7 +96,7 @@ void test(){
 
     readTermsemaphore = 1;
     writeTermsemaphore = 1;
-    swapPoolSemaphore = 1;
+    swapPoolSemaphore = 1; // o initSwapPoolTable?
     initDevSemaphore(flashSemaphore);
     processCreation(1);//shell
     SYSCALL(PASSEREN,((unsigned int)&masterSemaphore),0,0);

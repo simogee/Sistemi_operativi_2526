@@ -1,6 +1,6 @@
 /* dove implementiamo swap pool table, pager,I/O flash device*/
 #include "supportL.h"
-#include "../phase2/kernel.h" // devo includerlo per permettere a uTLBrefillHandler di accedere alle strutture dati globali di fase 2
+
 
 //metto l'indirizzo suggerito sulle specifiche:
 #define SWAP_POOL_START 0x20020000
@@ -132,7 +132,7 @@ void atomicRefresh(swap_t* swapFrame,int frame,int validation){
         //devo individuare la pagina relativa da invalidare: swa_pte PTE==Page Table Entry Devo solo modificare il bit V VALIDON lo faccio con and e ~VALIDO
         swapFrame->sw_pte->pte_entryLO &= ~VALIDON;
     }else if(validation == 1){ //devo validare
-        //questo funziona perchè frame , DIRTYON e VALIDON occupano bit diversi. frame è allineato con PAGESIZE(4096 o 0x1000) quindi ultimi 3 byte sono vuoti dove stanno i flag
+        //questo funziona perchè frame , DIRTYON e VALIDON occupano bit diversi. frame è allineato con PAGESIZE(4096 o 0x1000) quindi ultimi 12bit sono vuoti dove stanno i flag
         swapFrame->sw_pte->pte_entryLO = frame | DIRTYON | VALIDON;
     }
     // dovrei controllare se nella tlb questa pagina è conservata: primo approccio è cancellare tutto.
