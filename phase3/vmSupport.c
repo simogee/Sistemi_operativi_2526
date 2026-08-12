@@ -78,7 +78,7 @@ void pager(){
     } 
 
     //gain del mutual access alla swap pool
-    SYSCALL(PASSEREN,&swapPoolSemaphore,0,0);  //TBH ho provato a metterci un nome e ha funzionato. non ho ancora capito dove sia la def di passaren
+    SYSCALL(PASSEREN,&swapPoolSemaphore,0,0);  //in headers/const.h
 
     //determino la missing page(Forse si può direttamente fare una funzione poichè non è la prima volta che mi viene chiesto)
     unsigned int entryHi = supportP->sup_exceptState[PGFAULTEXCEPT].entry_hi;
@@ -86,34 +86,65 @@ void pager(){
 
 
     //devo trovare un frame da liberare: caso 1. esiste un frame vuoto, caso 2 devo eliminare una pagina
-    int framevictim = -1;
+    int frameVictim = -1;
     for(int i = 0; i < POOLSIZE;i++){
         if(swapPoolTable[i].sw_asid == -1){
-            framevictim = i;
+            frameVictim = i;
             break;
         }      
     }
     // non è stato trovato un frame libero
-    if(framevictim == -1){ 
-        framevictim = fifoPages % POOLSIZE;
+    if(frameVictim == -1){ 
+        frameVictim = fifoPages % POOLSIZE;
         fifoPages++;
     } 
     //Punto 8 todo
     /**
+     * Pagina k in frame i è stata selezionata come vittima: devo indicare che la pagina k è non valida in pageTable e TLB
      * 
-    (A)Update process x’s Page Table: mark Page Table entry k as not valid. This entry is easily
-    accessible, since the Swap Pool table’s entry i contains a pointer to this Page Table entry.
-    (b) Update the TLB, if needed. The TLB is a cache of the most recently executed process’s
-    Page Table entries. If process x’s page k’s Page Table entry is currently cached in the TLB
-    it is clearly out of date; it was just updated in the previous step.
-    Important: This step and the previous step must be accomplished atomically [Section 5.3].
-    (c) Update process x’s backing store. Write the contents of frame i to the correct location on
-    process x’s backing store/flash device [Section 5.1]. Treat any error status from the write
-    operation as a program trap [Section 8].
-      */
+    */
+   atomicRefresh(&swapPoolTable[frameVictim]);
+   /* Ora devo scrivere sul device DATA0 field con il corretto indirizzo di start del blocco da 4k: Il frameStartAddress*/
 
-
+    writeToMem(frameVictim,swapPoolTable[frameVictim].sw_asid);
     
   
 }
 
+void atomicRefresh(swap_t* swapFrame){
+    //Salvo stato precedente
+
+    //disabilito interrupt
+    setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
+    //devo individuare la pagina relativa da invalidare: swa_pte PTE==Page Table Entry Devo solo modificare il bit V VALIDON lo faccio con and e ~VALIDON
+    swapFrame->sw_pte->pte_entryLO &= ~VALIDON;
+    // dovrei controllare se nella tlb questa pagina è conservata: primo approccio è cancellare tutto.
+    TLBCLR();
+    //riattivo interrupts
+    setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
+    swapFrame->sw_pte->pte_entryLO;
+}
+//in scrittura da ram a bs: prima invalido pag poi scrivo in bs
+//in lettura da bs a ram: prima copio pagina nel frame(che al momento contiene una pagina V=0) poi modifico V = 1.
+//si dice write/read in relazione all'operazione dal backingstore: asid 1-8 e flash 0-7
+// op = 1 -> write 2->read, altri valori -> PANIC()
+/**devAddrBase = START_DEVREG+ ((IntlineNo - 3) * 0x80)+ (DevNo * 0x10); Formula di phase2, intLineNo è 4(si trova in interrupts.c)*/
+void rwToMem(int frameVictim,int asid,int pageNo,int op){
+    if(op != 1 && op != 2){
+        PANIC();
+    }
+    unsigned int ramAddr = addressSwapPool(frameVictim);
+    //ora: come individuo il dispositivo? ogni uproc è associato con il suo flash-dev
+    int devNumber = asid -1;
+    unsigned int flashBase =((unsigned int) START_DEVREG +((IL_FLASH-3)*0x80)+(devNumber*0x10)); //indirizzo base del flashdev. Ora in base all'offset otteniamo gli indirizzi necessari
+    unsigned int *DATA0addr=(unsigned int *)(flashBase + 0x08);
+    unsigned int *command  =(unsigned int *)(flashBase + 0x04);
+    //scrivo sul registro DATA0 l'indirizzo del frame
+    
+    *DATA0addr = ramAddr;
+    if(op == 1){//write
+        *command =( pageNo << 8) | FLASHWRITE; //in command least sig. byte è il comando: 8 equivale a lasciare libero un byte(quello del comando)
+    }else if(op == 2){ //read
+        *command =(pageNo << 8)  | FLASHREAD;
+    }
+}
