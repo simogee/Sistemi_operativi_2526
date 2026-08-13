@@ -8,6 +8,7 @@ void trapHandler(support_t*spt);
 //syscall handler
 void UsyscallHandler(support_t *sup);
 
+void Syscall2(support_t* sup);
 
 
 
