@@ -51,10 +51,10 @@ void initSupportStructure(int asid){
 
     supportProc->sup_exceptContext[PGFAULTEXCEPT].pc =(unsigned int)pager;
     supportProc->sup_exceptContext[PGFAULTEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK; //kernel mode con tutti gli interrupt abilitati
-    supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=(unsigned int)(supportProc->sup_stackTLB[499]);
+    supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=(unsigned int)(&supportProc->sup_stackTLB[499]);
     supportProc->sup_exceptContext[GENERALEXCEPT].pc = (unsigned int)generalExceptionHandler;
     supportProc->sup_exceptContext[GENERALEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK;
-    supportProc->sup_exceptContext[GENERALEXCEPT].stackPtr=(unsigned int)(supportProc->sup_stackGen[499]);
+    supportProc->sup_exceptContext[GENERALEXCEPT].stackPtr=(unsigned int)(&supportProc->sup_stackGen[499]);
 
     /*indirizzo base e stack*/
     unsigned int start_addr=0x80000;
@@ -89,8 +89,10 @@ void processCreation(int asid){
     support_t* processSupport= &supportTable[asid-1];
     initSupportStructure(asid);
     initState(&processState,asid);
-    SYSCALL(CREATEPROCESS,((unsigned int)&processState),PROCESS_PRIO_LOW,((unsigned int)processSupport)); //Si farà così? dubbio
-    
+    int retVal = SYSCALL(CREATEPROCESS,((unsigned int)&processState),PROCESS_PRIO_LOW,((unsigned int)processSupport)); //Si farà così? dubbio
+    if(retVal == -1){ // errore creazione processo
+        PANIC();
+    }
 
 }
 /**inizializza swap pool table e semaforo, inizializza tutti i semafori, crea processo shell, fa P su masterSemaphore e poi TermProcess(kernel) */
@@ -100,7 +102,7 @@ void test(){
 
     readTermsemaphore = 1;
     writeTermsemaphore = 1;
-    swapPoolSemaphore = 1; // o initSwapPoolTable?
+    initSwapTable();
     initDevSemaphore(flashSemaphore);
     processCreation(1);//shell
     SYSCALL(PASSEREN,((unsigned int)&masterSemaphore),0,0);

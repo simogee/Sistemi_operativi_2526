@@ -113,7 +113,7 @@ extern int writeTermsemaphore;
 //inizializzazione test
 void test();
 //inizializzazione strutture condivise(swap pool table)
-void initSwapPoolTable();
+void initSwapTable();
 //creazione U-proc
 void processCreation(int asid);
 //pager
