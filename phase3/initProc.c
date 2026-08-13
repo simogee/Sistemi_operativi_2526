@@ -104,5 +104,5 @@ void test(){
     initDevSemaphore(flashSemaphore);
     processCreation(1);//shell
     SYSCALL(PASSEREN,((unsigned int)&masterSemaphore),0,0);
-    SYSCALL(TERMINATE,1,0,0); //termino il processo test
+    SYSCALL(TERMPROCESS,0,0,0); //termino il processo test
 }

@@ -6,6 +6,9 @@
 #include <uriscv/types.h>
 #include <uriscv/liburiscv.h>
 #include "../phase2/kernel.h"
+
+#define READTERMINAL 5
+#define EXECUTE 6
 /**
  * In questa fase dobbiamo gestire le eccezioni che passavamo al livello superiore nella scorsa fase, che sono:
  *  TLB e page fault -> tlb è nei file della fase 2 ma dobbiamo aggiornarlo
@@ -116,11 +119,11 @@ void processCreation(int asid);
 //pager
 void pager();
 //general exception handler
-void *generalExceptionHandler();
+void generalExceptionHandler();
 //trapHandler
 void trapHandler(support_t*spt);
 //syscall handler
-void syscallHandler();
+void UsyscallHandler(support_t*spt);
 
 
 
