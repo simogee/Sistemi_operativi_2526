@@ -117,6 +117,10 @@ void processCreation(int asid);
 void pager();
 //general exception handler
 void *generalExceptionHandler();
+//trapHandler
+void trapHandler(support_t*spt);
+//syscall handler
+void syscallHandler();
 
 
 

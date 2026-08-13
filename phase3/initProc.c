@@ -42,6 +42,9 @@ void initState(state_t*stato,int asid){
     stato->entry_hi= (asid << ASIDSHIFT);
 }
 //come scritto nelle side: solo sup_asid,sup_exceptContext[2], and sup_privatePgTbl[32] richiedono init prima di richiesta di creazione processo
+/**
+ * exceptContext => dove va gestita l'eccezione e i parametri ad essa associata, in particolare 
+ */
 void initSupportStructure(int asid){
     support_t* supportProc = &supportTable[asid-1];
     supportProc->sup_asid = asid;
@@ -77,6 +80,7 @@ void initDevSemaphore(int* fls_dev){
     }
 }
 //prende da support table supportTable[asid-1],inizializza la support struct(initSupportStructure), prepara lo state iniziale-> registri puntati correttamente, user mode, interrupt abilitati, asid in entry_hi e chiama create process(Kernel)
+// gli asid validi sono 1-8
 void processCreation(int asid){
     if(asid <= 0 || asid > UPROCMAX){
         PANIC();

@@ -6,6 +6,7 @@
 #define SWAP_POOL_START 0x20020000
 swap_t swapPoolTable[POOLSIZE];
 void atomicRefresh(swap_t* swapFrame,int frame,int validation);
+int vpnToPage(int vpn);
 
 
 int swapPoolSemaphore;
@@ -34,7 +35,7 @@ void initSwapTable(){
     }
 
 }
-void trapHandler(support_t*spt){};
+
 
 
 
@@ -69,14 +70,10 @@ void pager(){
 
     //determino la missing page(Forse si può direttamente fare una funzione poichè non è la prima volta che mi viene chiesto)
     unsigned int entryHi = supportPTR->sup_exceptState[PGFAULTEXCEPT].entry_hi;
-    int missingVpn = (entryHi & GETPAGENO) >> VPNSHIFT; // questa è la pagina che voglio caricare dal FlashDev...
+    int missingVpn = (entryHi &(GETSHAREFLAG | GETPAGENO)) >> VPNSHIFT; // con getSHAREFLAG conservo tutti i bit che indicano la pagina: 0x80005000 -> 0x80005
+    // dato un indirizzo 0x80005 o 0xBFFFFF controlla gli ultimi 8 bit: se 0-30 ritorna la pagina, altrimenti se FF = 255 ritorna pagina 31(stack)  
+    int missingPage = vpnToPage(missingVpn);
 
-    //calcolo il numero di pagina: se pagina normale ottengo un numero compreso tra 0-30, se caso stack ottengo 0x3ffff che converto in 31
-    // 0x3ffff = 0011 1111 1111 1111 1111 0000 0000 0000 con una pagina normale: 0x8005.0000 diventa: 0100 and 0011 = 0 0000 and 1111 per gli intermedi, 0101 and 1111 = 0101 => 0 0 0 0 5.
-    // caso 0xBFFFF and 0x3FFFF = B = 1011 and 0011 = 0011 = 3 e gli altri tutti f quindi 0x3FFFF. 
-    if(missingVpn == 0x3FFFF){ // è forse poco elegante ma fa il suo lavoro
-        missingVpn=31;
-    }
 
     int isFree = 0; //per distinguere se fare o no punto 8
     //devo trovare un frame da liberare: caso 1. esiste un frame vuoto, caso 2 devo eliminare una pagina
@@ -99,14 +96,15 @@ void pager(){
     if(isFree != 1){
         atomicRefresh(&swapPoolTable[frameVictim],-1,0);
          /* Ora devo scrivere sul device DATA0 field con il corretto indirizzo di start del blocco da 4k: Il frameStartAddress*/
-        int IOstatus =rwToMem(frameVictim,swapPoolTable[frameVictim].sw_asid,swapPoolTable[frameVictim].sw_pageNo,1);//scrivo la pagina da killare in memoria.
+        int killedPage = vpnToPage(swapPoolTable[frameVictim].sw_pageNo);
+        int IOstatus =rwToMem(frameVictim,swapPoolTable[frameVictim].sw_asid,killedPage,1);//scrivo la pagina da killare in memoria.
         if(IOstatus != READY){ //operazione non andata bene
             SYSCALL(VERHOGEN,(int)&swapPoolSemaphore,0,0);
             trapHandler(supportPTR);
         }
     }
     //leggo da flashdev nel frame
-    int IOstatus = rwToMem(frameVictim,supportPTR->sup_asid,missingVpn,2);
+    int IOstatus = rwToMem(frameVictim,supportPTR->sup_asid,missingPage,2);
     if(IOstatus != READY){ //operazione non andata bene
             SYSCALL(VERHOGEN,(int)&swapPoolSemaphore,0,0);
             trapHandler(supportPTR);
@@ -114,7 +112,7 @@ void pager(){
     //punto 10: Aggiorno la entry della swapPoolTable
     swapPoolTable[frameVictim].sw_asid = supportPTR->sup_asid;
     swapPoolTable[frameVictim].sw_pageNo = missingVpn;
-    swapPoolTable[frameVictim].sw_pte = &supportPTR->sup_privatePgTbl[missingVpn];
+    swapPoolTable[frameVictim].sw_pte = &supportPTR->sup_privatePgTbl[missingPage];
     //punto 11/12 atomic update, Valid on e aggiornare anche PFN corretto
     atomicRefresh(&swapPoolTable[frameVictim],frameAddr,1);   
     //step 13
@@ -125,6 +123,8 @@ void pager(){
 
 //validation = 0 invalido, validation = 1 valido, frame = -1 per valdation off
 void atomicRefresh(swap_t* swapFrame,int frame,int validation){
+    //salvo il "vecchio" stato
+    int status = getSTATUS();
     //disabilito interrupt
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
     
@@ -138,18 +138,19 @@ void atomicRefresh(swap_t* swapFrame,int frame,int validation){
     // dovrei controllare se nella tlb questa pagina è conservata: primo approccio è cancellare tutto.
     TLBCLR();
     //riattivo interrupts
-    setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
+    setSTATUS(status);
     
 }
-//in scrittura da ram a bs: prima invalido pag poi scrivo in bs
-//in lettura da bs a ram: prima copio pagina nel frame(che al momento contiene una pagina V=0) poi modifico V = 1.
-//si dice write/read in relazione all'operazione dal backingstore: asid 1-8 e flash 0-7
-// op = 1 -> write 2->read, altri valori -> PANIC()
-/**devAddrBase = START_DEVREG+ ((IntlineNo - 3) * 0x80)+ (DevNo * 0x10); Formula di phase2, intLineNo è 4(si trova in interrupts.c)
+/**in scrittura da ram a bs: prima invalido pag poi scrivo in bs
+ *in lettura da bs a ram: prima copio pagina nel frame(che al momento contiene una pagina V=0) poi modifico V = 1.
+ *si dice write/read in relazione all'operazione dal backingstore: asid 1-8 e flash 0-7
+ *op = 1 -> write 2->read, altri valori -> PANIC()
+ *devAddrBase = START_DEVREG+ ((IntlineNo - 3) * 0x80)+ (DevNo * 0x10); Formula di phase2, intLineNo è 4(si trova in interrupts.c)
  * Deve ritornare lo status dell'op.
  * Op = 1 write Op = 2 read
-*/
-int rwToMem(int frameVictim,int asid,int pageNo,int op){
+ * nel command devo scrivere
+**/
+int rwToMem(int frameVictim,int asid,int page,int op){
     if(op != 1 && op != 2){
         PANIC();
     }
@@ -163,11 +164,11 @@ int rwToMem(int frameVictim,int asid,int pageNo,int op){
     unsigned int command;
     //scrivo sul registro DATA0 l'indirizzo del frame
     *DATA0addr = ramAddr;
-
+    //nel comando dico pagina su cui operare e operazione
     if(op == 1){//write
-        command =( pageNo << 8) | FLASHWRITE; //in command least sig. byte è il comando: 8 equivale a lasciare libero un byte(quello del comando)
+        command = (page << 8) | FLASHWRITE; //in command least sig. byte è il comando: 8 equivale a lasciare libero un byte(quello del comando): 
     }else if(op == 2){ //read
-        command =(pageNo << 8)  | FLASHREAD;
+        command = (page << 8)  | FLASHREAD;
     }
     //dopo aver caricato i dati corretti dico al kernel di eseguire la DOIO
     int ioStatus =SYSCALL(DOIO,(int)commandAddr,command,0);
@@ -178,3 +179,20 @@ int rwToMem(int frameVictim,int asid,int pageNo,int op){
 
 //pager: ottiene la pagina che vuole essere caricata, cerca se c'è un frame libero, se sì la carica e basta, altrimenti: deve selezionare il frame da killare, al suo interno c'è la pagina toKill
 // ora dobbiamo: invalidare la pagina, scrivere toKill nel flashDevice,scrivere la pagina nuova toAdd nel frame, aggiornare i dati della swapPoolTable, aggiornare le tabelle. 
+
+
+//converte il vpn in pagina
+
+int vpnToPage(int vpn){
+    unsigned int pageFlag = 0xff;
+    vpn = vpn & pageFlag;
+    if(vpn == 255)
+        return 31;
+    else if(vpn >= 0 && vpn <= 30)
+        return vpn;
+    else{
+        PANIC(); //per il momento così
+        return -1;
+    }
+        
+}
