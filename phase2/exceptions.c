@@ -28,11 +28,13 @@ void exception_handler(){
         unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; //valore del registro cause e con la maschera CAUSE_EXCCODE_MASK ritorniamo il codice dell'eccezione
         if (cause_code == 8 || cause_code == 11)
             syscallHandler(ptr_exc);
-        else if (cause_code >= 24 && cause_code <= 28) 
+        else if (cause_code >= 24 && cause_code <= 28){
+            klog_print("PAGEFAULT");
             passup_or_die(PGFAULTEXCEPT);
-        else if( (cause_code >=0 && cause_code <= 7) || (cause_code == 9 || cause_code == 10)||(cause_code>=12 && cause_code<=23))
+        } else if( (cause_code >=0 && cause_code <= 7) || (cause_code == 9 || cause_code == 10)||(cause_code>=12 && cause_code<=23)){
+            klog_print("GENERALEXCPT");
             passup_or_die(GENERALEXCEPT); 
-        else
+        }else
             PANIC();
     }
 
@@ -476,13 +478,12 @@ void uTLB_RefillHandler(){
     state_t* savedState = (state_t *)BIOSDATAPAGE; //review: biosDatapage è una zona di memoria in cui viene salvato lo stato della cpu al momento di un eccezione.
     pteEntry_t* pageTable = current_process->p_supportStruct->sup_privatePgTbl;  //otteniamo la page table del processo corrente.
     unsigned int pageMissing = ((savedState->entry_hi & GETPAGENO) >> VPNSHIFT); //dal registro entryHi usiamo la maschera GETPAGENO per isolare il VPN dal asid e poi shiftiamo a destra(contrario di quando si salva sul registro) per ottenere la pagina
-    int pageIndex;
-    if(pageMissing == 0xBFFFF){ // è forse poco elegante ma fa il suo lavoro
-        pageIndex=31;
-    }else{
-        pageIndex = pageMissing - 0x80000; // ottengo l'indice della pageTable relativo  TODO: di sicuro esiste una costante per 0x80000
+    
+    if(pageMissing == 0x3FFFF){ // è forse poco elegante ma fa il suo lavoro
+        pageMissing=31;
     }
-    setENTRYHI(pageTable[pageIndex].pte_entryHI);
+    klog_print_hex(pageTable[pageMissing].pte_entryLO & VALIDON);
+    setENTRYHI(pageTable[pageMissing].pte_entryHI);
     setENTRYLO(pageTable[pageMissing].pte_entryLO);
     TLBWR(); // scrive sul TLB
     LDST(savedState);

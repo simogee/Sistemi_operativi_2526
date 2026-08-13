@@ -73,7 +73,9 @@ void pager(){
     int missingVpn = (entryHi &(GETSHAREFLAG | GETPAGENO)) >> VPNSHIFT; // con getSHAREFLAG conservo tutti i bit che indicano la pagina: 0x80005000 -> 0x80005
     // dato un indirizzo 0x80005 o 0xBFFFFF controlla gli ultimi 8 bit: se 0-30 ritorna la pagina, altrimenti se FF = 255 ritorna pagina 31(stack)  
     int missingPage = vpnToPage(missingVpn);
-
+    klog_print("--Missing Page--");
+    klog_print_dec(missingPage); // scrive sul buffer al contrario quando metti in ascii
+    klog_print("--End--");
 
     int isFree = 0; //per distinguere se fare o no punto 8
     //devo trovare un frame da liberare: caso 1. esiste un frame vuoto, caso 2 devo eliminare una pagina

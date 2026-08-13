@@ -18,6 +18,7 @@ void generalExceptionHandler(){
     //devo comprendere la cause: copio il codice di fase2
     unsigned int cause = supportPtr->sup_exceptState[GENERALEXCEPT].cause;
     unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; // converte il cause in un valore "comprensibile"
+    klog_print_dec(cause_code);
     if(cause_code == 8 || cause_code == 11){ // nel file di phase2 dice che una eccezione con cause 8 o 11 è da passare al piano superiore
         UsyscallHandler(supportPtr);
     }else{

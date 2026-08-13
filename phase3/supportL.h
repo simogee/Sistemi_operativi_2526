@@ -127,4 +127,9 @@ void UsyscallHandler(support_t*spt);
 
 
 
+
+
+extern void klog_print(char *msg);
+extern void klog_print_dec(unsigned int num);
+extern void klog_print_hex(unsigned int num);
 #endif

@@ -51,10 +51,10 @@ void initSupportStructure(int asid){
 
     supportProc->sup_exceptContext[PGFAULTEXCEPT].pc =(unsigned int)pager;
     supportProc->sup_exceptContext[PGFAULTEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK; //kernel mode con tutti gli interrupt abilitati
-    supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=(unsigned int)(&supportProc->sup_stackTLB[499]);
+    supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=(unsigned int)&supportProc->sup_stackTLB[499];
     supportProc->sup_exceptContext[GENERALEXCEPT].pc = (unsigned int)generalExceptionHandler;
     supportProc->sup_exceptContext[GENERALEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK;
-    supportProc->sup_exceptContext[GENERALEXCEPT].stackPtr=(unsigned int)(&supportProc->sup_stackGen[499]);
+    supportProc->sup_exceptContext[GENERALEXCEPT].stackPtr=(unsigned int)&supportProc->sup_stackGen[499];
 
     /*indirizzo base e stack*/
     unsigned int start_addr=0x80000;
