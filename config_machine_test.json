@@ -9,6 +9,10 @@
         "flash0": {
             "enabled": true,
             "file": "testers/shell.uriscv"
+        },
+        "terminal0": {
+            "enabled": true,
+            "file": "term0.uriscv"
         }
     },
     "execution-rom": "/usr/local/share/uriscv/exec.rom.uriscv",

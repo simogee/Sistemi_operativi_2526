@@ -9,11 +9,12 @@ Dobbiamo inizializzare le strutture dati condivise tra
 */
 
 support_t supportTable[UPROCMAX]; // tabella statica dove per ogni processo con ASID viene salvata la struttura support_t. Ogni PCB ci può accedere tramite support_t *p_supportStruct;
+//semafori eventi
+int masterSemaphore; // indica quando la shell termina
+int shellSemaphore;  //indica quando il programma lanciato dalla shell termina
 
-int masterSemaphore;
-int shellSemaphore;
-
-int flashSemaphore[UPROCMAX];
+//semafori mutex
+//int flashSemaphore[UPROCMAX];
 
 int readTermsemaphore;
 int writeTermsemaphore;
@@ -74,11 +75,11 @@ void initSupportStructure(int asid){
 }
 
 
-void initDevSemaphore(int* fls_dev){
+/**void initDevSemaphore(int* fls_dev){
     for(int i = 0; i< UPROCMAX;i++){
         flashSemaphore[i] = 1;
     }
-}
+}*/
 //prende da support table supportTable[asid-1],inizializza la support struct(initSupportStructure), prepara lo state iniziale-> registri puntati correttamente, user mode, interrupt abilitati, asid in entry_hi e chiama create process(Kernel)
 // gli asid validi sono 1-8
 void processCreation(int asid){
@@ -103,7 +104,7 @@ void test(){
     readTermsemaphore = 1;
     writeTermsemaphore = 1;
     initSwapTable();
-    initDevSemaphore(flashSemaphore);
+    //initDevSemaphore(flashSemaphore);
     processCreation(1);//shell
     SYSCALL(PASSEREN,((unsigned int)&masterSemaphore),0,0);
     SYSCALL(TERMPROCESS,0,0,0); //termino il processo test
