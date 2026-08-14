@@ -12,6 +12,8 @@ void Syscall2(support_t* sup);
 
 int Syscall4(support_t*sup);
 
+void Syscall5(support_t*sup);
+int checkAddress(unsigned int address);
 
 void generalExceptionHandler(){
     // devo ottenere il tipo di eccezione ed indirizzarla nell'handler corretto: syscall o trap
@@ -41,11 +43,12 @@ void UsyscallHandler(support_t *sup){
             break;
         case (WRITETERMINAL):
             Syscall4(sup);
-            break;/*
+            break;
         case (READTERMINAL):
             Syscall5(sup);
             break;
-        case (EXECUTE):(termreg_t*) DEV_REG_ADDR(IL_TERMINAL,0);
+            /*
+        case (EXECUTE):
             Syscall6(sup);
             break;*/
         default:
@@ -69,20 +72,7 @@ void Syscall2(support_t* sup){
     }
     SYSCALL(TERMPROCESS,0,0,0);
     } 
-/*
-void SyScall4(support_t* sup){
 
-
-}
-
-void SyScall5(support_t* sup){
-
-}
-
-void SyScall6(support_t* sup){
-
-}
-*/
 void trapHandler(support_t* sup){
     klog_print("trap--entryhi--");
     klog_print_hex(sup->sup_exceptState[GENERALEXCEPT].entry_hi);
@@ -188,9 +178,59 @@ int Syscall4(support_t* sup){
 }
 /**ReadTerminal*/
 void Syscall5(support_t* sup){
+    state_t* status = &sup->sup_exceptState[GENERALEXCEPT];
+    unsigned int* a0 = &status->reg_a0;
+    unsigned int startingAddr = status->reg_a1; //indirizzo dove storare dati del terminale
+   
+    termreg_t* term = (termreg_t*) DEV_REG_ADDR(IL_TERMINAL,0);
+    char*c = (char*)startingAddr;
+    *a0=0;
+    if(checkAddress(startingAddr) == 0){ //indirizzo valido: possiamo leggere
+        SYSCALL(PASSEREN,(int)&readTermsemaphore,0,0);
+        while(1){
+            if(checkAddress((unsigned int)c) != 0){
+                SYSCALL(VERHOGEN,(int)&readTermsemaphore,0,0);
+                Syscall2(sup);
+            }
+            int retVal = SYSCALL(DOIO,(int)&term->recv_command,(int)RECEIVECHAR,0);
+            int statusCode = retVal & 0xff;
+            int charRecv = (retVal >> 8) & 0xff; // char
+            klog_print("--Valori: retVal,statusCode,CharRecv-");
+            klog_print_hex(retVal);
+            klog_print("--");
+            klog_print_hex(statusCode);
+            klog_print("--");
+            klog_print_hex(charRecv);
+            klog_print("--end valori--");
+            if(statusCode != 5){
+                *a0= -statusCode;
+                SYSCALL(VERHOGEN,(int)&readTermsemaphore,0,0);
+                return;
+            }
+            if(charRecv == '\n'|| charRecv == '\r'){
+                *c=(char)charRecv;
+                (*a0)++;
+                SYSCALL(VERHOGEN,(int)&readTermsemaphore,0,0);
+                return;
+            }
+            *c=(char)charRecv;
+            c++; //incremento l'indirizzo 
+            (*a0)++;
+        }
+    }else{
+        Syscall2(sup);
+    }      
 
 }
 /** Execute */
 void Syscall6(support_t* sup){
 
+}
+int checkAddress(unsigned int address){
+    address= address >> 12;
+    if((address >= 0x80000 && address <=0x8001E)||(address ==0xBFFFF)){
+        return 0;
+    }else{
+        return 1;
+    }
 }
