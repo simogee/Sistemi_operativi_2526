@@ -61,6 +61,9 @@ void pager(){
     support_t* supportPTR = (support_t*)SYSCALL(GETSUPPORTPTR,0,0,0); // ottengo il puntatore alla struttura di supporto
     int cause = supportPTR->sup_exceptState[PGFAULTEXCEPT].cause; //ottengo l'eccezione
     cause = cause & CAUSE_EXCCODE_MASK; //estraggo dalla cause il valore che indica se pagefault o TLBmod
+    klog_print("--CAUSE--");
+    klog_print_hex(cause); //cause 19 quindi non è exc_MOD
+    klog_print("--");
     if(cause == EXC_MOD){ //causa modifica tlb: queste costanti si trovano in /uriscv/cpu.h
         trapHandler(supportPTR); //skrr
     } 
@@ -70,7 +73,11 @@ void pager(){
 
     //determino la missing page(Forse si può direttamente fare una funzione poichè non è la prima volta che mi viene chiesto)
     unsigned int entryHi = supportPTR->sup_exceptState[PGFAULTEXCEPT].entry_hi;
+    klog_print("--VPN COMPLETO--");
+    klog_print_hex(entryHi &(GETSHAREFLAG | GETPAGENO));
+    klog_print("---");
     int missingVpn = (entryHi &(GETSHAREFLAG | GETPAGENO)) >> VPNSHIFT; // con getSHAREFLAG conservo tutti i bit che indicano la pagina: 0x80005000 -> 0x80005
+   
     // dato un indirizzo 0x80005 o 0xBFFFFF controlla gli ultimi 8 bit: se 0-30 ritorna la pagina, altrimenti se FF = 255 ritorna pagina 31(stack)  
     int missingPage = vpnToPage(missingVpn);
     klog_print("--Missing Page--");
@@ -97,6 +104,10 @@ void pager(){
     //punto 8-> solo se frame occupato. UPdate atomico pageT e TLB, write nel backing store. Devo inoltre 
     if(isFree != 1){
         atomicRefresh(&swapPoolTable[frameVictim],-1,0);
+        klog_print("--DOPO VALIDAZIONE--");
+        klog_print_hex(supportPTR->sup_privatePgTbl[missingPage].pte_entryLO);
+        klog_print("--V--");
+        klog_print_hex(supportPTR->sup_privatePgTbl[missingPage].pte_entryLO & VALIDON);
          /* Ora devo scrivere sul device DATA0 field con il corretto indirizzo di start del blocco da 4k: Il frameStartAddress*/
         int killedPage = vpnToPage(swapPoolTable[frameVictim].sw_pageNo);
         int IOstatus =rwToMem(frameVictim,swapPoolTable[frameVictim].sw_asid,killedPage,1);//scrivo la pagina da killare in memoria.
@@ -116,7 +127,12 @@ void pager(){
     swapPoolTable[frameVictim].sw_pageNo = missingVpn;
     swapPoolTable[frameVictim].sw_pte = &supportPTR->sup_privatePgTbl[missingPage];
     //punto 11/12 atomic update, Valid on e aggiornare anche PFN corretto
-    atomicRefresh(&swapPoolTable[frameVictim],frameAddr,1);   
+    atomicRefresh(&swapPoolTable[frameVictim],frameAddr,1); 
+    klog_print("--DOPO VALIDAZIONE--");
+    klog_print_hex(supportPTR->sup_privatePgTbl[missingPage].pte_entryLO);
+    klog_print("--V--");
+    klog_print_hex(supportPTR->sup_privatePgTbl[missingPage].pte_entryLO & VALIDON); 
+    klog_print("--"); 
     //step 13
     SYSCALL(VERHOGEN,(int)&swapPoolSemaphore,0,0);
     //step 14

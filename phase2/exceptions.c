@@ -482,8 +482,14 @@ void uTLB_RefillHandler(){
     if(pageMissing == 0x3FFFF){ // è forse poco elegante ma fa il suo lavoro
         pageMissing=31;
     }
-    klog_print("--valore bit valid:");
+    klog_print("--valore bit valid:--");
     klog_print_hex(pageTable[pageMissing].pte_entryLO & VALIDON);
+    klog_print("--");
+    klog_print("--valore entryhi:--");
+    klog_print_hex(savedState->entry_hi);
+    klog_print("--");
+    klog_print("--valore pageMissing:--");
+    klog_print_hex(pageMissing);
     klog_print("--");
     setENTRYHI(pageTable[pageMissing].pte_entryHI);
     setENTRYLO(pageTable[pageMissing].pte_entryLO);
