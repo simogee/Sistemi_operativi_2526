@@ -94,6 +94,11 @@ int Syscall4(support_t* sup){
     int* a0                   = (int*)status->reg_a0;
     unsigned int startingAddr = status->reg_a1;
     int length                = status->reg_a2;
+
+
+    klog_print("len passata:  \n");
+    klog_print_dec(length);
+    klog_print("--\n");
     
     // check dimensioni
     if(length < 0 || length > 128){

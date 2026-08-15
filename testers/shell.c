@@ -6,8 +6,8 @@
 void main() {
     char* stringa[128];
     SYSCALL(READTERMINAL,(int)stringa,0,0);
-    SYSCALL(WRITETERMINAL,(int)stringa,128,0);
+    SYSCALL(WRITETERMINAL,(int)stringa,10,0);
     SYSCALL(TERMINATE, 0, 0, 0);
     
-    while (1);
+   
 }
