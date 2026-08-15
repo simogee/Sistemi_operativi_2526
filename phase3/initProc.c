@@ -84,15 +84,15 @@ void initSupportStructure(int asid){
 // gli asid validi sono 1-8
 void processCreation(int asid){
     if(asid <= 0 || asid > UPROCMAX){
-        PANIC();
+        SYSCALL(TERMINATE,0,0,0);
     }
     state_t processState;
     support_t* processSupport= &supportTable[asid-1];
     initSupportStructure(asid);
     initState(&processState,asid);
-    int retVal = SYSCALL(CREATEPROCESS,((unsigned int)&processState),PROCESS_PRIO_LOW,((unsigned int)processSupport)); //Si farà così? dubbio
+    int retVal = SYSCALL(CREATEPROCESS,((unsigned int)&processState),PROCESS_PRIO_LOW,((unsigned int)processSupport)); 
     if(retVal == -1){ // errore creazione processo
-        PANIC();
+        SYSCALL(TERMINATE,0,0,0);
     }
 
 }

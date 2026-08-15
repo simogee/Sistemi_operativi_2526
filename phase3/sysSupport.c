@@ -13,6 +13,9 @@ void Syscall2(support_t* sup);
 int Syscall4(support_t*sup);
 
 void Syscall5(support_t*sup);
+
+void Syscall6(support_t*sup);
+
 int checkAddress(unsigned int address);
 
 void generalExceptionHandler(){
@@ -47,10 +50,10 @@ void UsyscallHandler(support_t *sup){
         case (READTERMINAL):
             Syscall5(sup);
             break;
-            /*
+            
         case (EXECUTE):
             Syscall6(sup);
-            break;*/
+            break;
         default:
             Syscall2(sup); // default terminiamo perchè c'è stato un errore.
             break;
@@ -88,6 +91,7 @@ void trapHandler(support_t* sup){
  *         a2 = 0
  *         a2 > 128
  * Ogni errore viene gestito con la chiamata di SYS2
+ * Legge in una stringa il contenuto del terminale e ritorna la lunghezza del contenuto
  */
 int Syscall4(support_t* sup){
     state_t* status = &sup->sup_exceptState[GENERALEXCEPT];
@@ -181,6 +185,7 @@ int Syscall4(support_t* sup){
     klog_print("--");
     return *a0;
 }
+
 /**ReadTerminal*/
 void Syscall5(support_t* sup){
     state_t* status = &sup->sup_exceptState[GENERALEXCEPT];
@@ -227,9 +232,14 @@ void Syscall5(support_t* sup){
     }      
 
 }
-/** Execute */
+/** Execute registro a0 dice il numero e a1 dice l'asid */
 void Syscall6(support_t* sup){
-
+    state_t* stato = &sup->sup_exceptState[GENERALEXCEPT];
+    //possibili check di condizione per il valore passato in a1
+    processCreation(stato->reg_a1); // in registro a1 viene passato l'asid
+    SYSCALL(PASSEREN,(int)&shellSemaphore,0,0);
+    //il processo una volta terminato chiamera sys2 che farà la verhogen sullo shellsem.
+    
 }
 int checkAddress(unsigned int address){
     address= address >> 12;
