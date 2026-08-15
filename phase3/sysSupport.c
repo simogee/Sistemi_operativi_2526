@@ -55,7 +55,7 @@ void UsyscallHandler(support_t *sup){
             Syscall2(sup); // default terminiamo perchè c'è stato un errore.
             break;
     }
-    LDST(&sup->sup_exceptContext[GENERALEXCEPT]);
+    LDST(stato);
 }
 
 //terminate: quello che fa è pulire le strutture dati del processo che la invoca, se il processo è la shell fa una V su mastersem altrimenti fa la V su shellsem
