@@ -20,6 +20,7 @@ void main() {
 char op[]={'+','-','*','/'};
 int result; 
 int reminder;
+int lenRes=0;
 char res[4]; //stringa del risultato
 
 void numToString(int res,int reminder,char buf[]);
@@ -28,7 +29,7 @@ void main() {
     char buf[4]; // numero simbolo numero \n
     int len = SYSCALL(READTERMINAL,(int)buf,0,0);
     if(len > 4){
-        print(WRITETERMINAL,"errore len");
+        print(WRITETERMINAL,"errore Lunghezza valori");
         SYSCALL(TERMINATE,0,0,0);
     }
     char operation = buf[1]; // dove si trova l'op
@@ -57,20 +58,40 @@ void main() {
             result=   num1 * num2;
             break;
         case (3):
+            if(num2 == 0){// divisione per 0
+                print(WRITETERMINAL,"Divisione per 0");
+                SYSCALL(TERMINATE,0,0,0); 
+            }
             result =   num1 / num2;
-            reminder = num1 -(result * num2);
-            reminder = ((reminder*10) / num2)*10;
+            if(num2 > num1){
+                reminder = num1*10;
+                int iter = 0;
+                while((num2*iter) < reminder){
+                    iter++;
+                }
+                reminder = iter;
+            }else{
+                reminder = num1 -(result * num2);
+                reminder = ((reminder*10) / num2)*10;
+            }
+            
             break;
         default:
-            print(WRITETERMINAL,"ERRORE");
+            print(WRITETERMINAL,"Errore operazione non riconosciuta");
             SYSCALL(TERMINATE,0,0,0);
-   }
-   //arriva qui
-  numToString(result,reminder,res);
-      //scrivo il risultato sul terminale
-    SYSCALL(WRITETERMINAL,(int)res,4,0);
+    }
    
-   SYSCALL(TERMINATE,0,0,0);
+    numToString(result,reminder,res);
+    for(int i = 0; i< 5;i++){
+        if(res[i] == '\0'){
+            lenRes= i;
+            break;
+        }
+    }
+    //scrivo il risultato sul terminale
+    SYSCALL(WRITETERMINAL,(int)res,lenRes,0);
+   
+    SYSCALL(TERMINATE,0,0,0);
  
 }
 
@@ -87,12 +108,18 @@ void numToString(int res,int reminder,char buf[]){
         buf[2] = '\0';
     }else if(res >=0 && res <=9){
         buf[0] = (char)(res+'0');
-        buf[1] = '.';
-        buf[2] = (char)(reminder+'0');
-        buf[3] = '\0';
+        if(reminder != 0){
+            buf[1] = '.';
+            buf[2] = (char)(reminder+'0');
+            buf[3] = '\0';
+        }else{
+            buf[1] = '\0';
+        }
+        
     }else{
         buf[0] = (char)((res/10)+'0');
         buf[1] = (char)((res %10)+'0');
+        buf[2] = '\0';
     }
   return;
 }
