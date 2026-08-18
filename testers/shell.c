@@ -40,7 +40,7 @@ void main(){
         for(int i = 0; i < 7; i++){
             int nameLen = stringSize(map[i].programName); 
             if(strncmpEnhanced(buff,map[i].programName,len-1,nameLen)==0){
-                print(WRITETERMINAL,"\n");
+                //print(WRITETERMINAL,"\n");
                 SYSCALL(EXECUTE,map[i].asidNum,0,0);
                 break;
             }else{

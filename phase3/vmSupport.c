@@ -172,6 +172,17 @@ int rwToMem(int frameVictim,int asid,int page,int op){
     }else if(op == 2){ //read
         command = (page << 8)  | FLASHREAD;
     }
+    klog_print("--ASID--");
+    klog_print_dec(asid);
+    klog_print("----");
+
+    klog_print("--DEV--");
+    klog_print_dec(devNumber);
+    klog_print("----");
+
+    klog_print("--COMMAND ADDR--");
+    klog_print_hex((unsigned int)commandAddr);
+    klog_print("----\n");
     //dopo aver caricato i dati corretti dico al kernel di eseguire la DOIO
     int ioStatus =SYSCALL(DOIO,(int)commandAddr,command,0);
     return ioStatus;

@@ -3,6 +3,9 @@
 #include "h/tconst.h"
 #include "h/print.h"
 
+
+
+
 //riscv non supporta float apparentemente, quindi svolgo tutto con int
 char op[]={'+','-','*','/'};
 int result; 
@@ -77,16 +80,17 @@ void main() {
     }
     //scrivo il risultato sul terminale
     SYSCALL(WRITETERMINAL,(int)res,lenRes,0);
-   
+    print(WRITETERMINAL,"\n");
     SYSCALL(TERMINATE,0,0,0);
  
 }
-
+    
 /**devo convertire il risultato in char.
  * casi:  < 0 dobbiamo riservare un char al segno -
  *        0-9: un char ad intero ed eventuale calcolo di remider. quindi: intero +'.'+ reminder
  *        10-81: due char per cifre e basta.
  * */
+
 void numToString(int res,int reminder,char buf[]){
     if(res < 0){// qui è possibile solo con sottrazione
         buf[0]= '-';
@@ -110,3 +114,4 @@ void numToString(int res,int reminder,char buf[]){
     }
   return;
 }
+  
