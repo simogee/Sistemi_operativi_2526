@@ -61,10 +61,10 @@ int strncmpEnhanced(const char* firstArg, const char* secondArg, int szFirst,int
 {
     //se viene passata una stringa nulla
     if(szFirst == 0 || szSecond == 0){
-        return -666;
+        return -5;
     }
     if(szFirst != szSecond){
-        return -666;
+        return -5;
     }
     const char* ptr1 =  firstArg;
     const char* ptr2 =  secondArg;
