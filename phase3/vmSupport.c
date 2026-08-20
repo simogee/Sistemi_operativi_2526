@@ -3,7 +3,7 @@
 
 
 //metto l'indirizzo suggerito sulle specifiche:
-#define SWAP_POOL_START 0x20020000
+
 swap_t swapPoolTable[POOLSIZE];
 void atomicRefresh(swap_t* swapFrame,int frame,int validation);
 int vpnToPage(int vpn);
@@ -62,7 +62,7 @@ void pager(){
     int cause = supportPTR->sup_exceptState[PGFAULTEXCEPT].cause; //ottengo l'eccezione
     cause = cause & CAUSE_EXCCODE_MASK; //estraggo dalla cause il valore che indica se pagefault o TLBmod
     if(cause == EXC_MOD){ //causa modifica tlb: queste costanti si trovano in /uriscv/cpu.h
-        trapHandler(supportPTR); //skrr
+        trapHandler(supportPTR); 
     } 
 
     //gain del mutual access alla swap pool
@@ -73,10 +73,11 @@ void pager(){
     int missingVpn = (entryHi &(GETSHAREFLAG | GETPAGENO)) >> VPNSHIFT; // con getSHAREFLAG conservo tutti i bit che indicano la pagina: 0x80005000 -> 0x80005
     // dato un indirizzo 0x80005 o 0xBFFFFF controlla gli ultimi 8 bit: se 0-30 ritorna la pagina, altrimenti se FF = 255 ritorna pagina 31(stack)  
     int missingPage = vpnToPage(missingVpn);
+    /*debug*/
     klog_print("--Missing Page--");
     klog_print_dec(missingPage); // scrive sul buffer al contrario quando metti in ascii
     klog_print("--End--");
-
+    /*--*/
     int isFree = 0; //per distinguere se fare o no punto 8: 1-> esiste un frame non ancora occupato, 0 tutti i frame sono occupati
 
     //devo trovare un frame da liberare: caso 1. esiste un frame vuoto, caso 2 devo eliminare una pagina
@@ -179,6 +180,7 @@ int rwToMem(int frameVictim,int asid,int page,int op){
     }else if(op == 2){ //read
         command = (page << 8)  | FLASHREAD;
     }
+    /*debug*/
     klog_print("--ASID--");
     klog_print_dec(asid);
     klog_print("----");
@@ -190,6 +192,7 @@ int rwToMem(int frameVictim,int asid,int page,int op){
     klog_print("--COMMAND ADDR--");
     klog_print_hex((unsigned int)commandAddr);
     klog_print("----\n");
+    /*--*/
     //dopo aver caricato i dati corretti dico al kernel di eseguire la DOIO
     int ioStatus =SYSCALL(DOIO,(int)commandAddr,command,0);
     return ioStatus;

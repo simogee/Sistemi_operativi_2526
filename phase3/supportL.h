@@ -10,6 +10,7 @@
 
 #define READTERMINAL 5
 #define EXECUTE 6
+#define SWAP_POOL_START 0x20020000
       
 /*semafori per garantire che processo padre non lasci orfani i figli */
 extern int masterSemaphore; //semaforo del primo processo: viene fatta V solo quando la shell lanciata termina init 0

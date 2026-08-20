@@ -26,9 +26,11 @@ void generalExceptionHandler(){
     //devo comprendere la cause: copio il codice di fase2
     unsigned int cause = supportPtr->sup_exceptState[GENERALEXCEPT].cause;
     unsigned int cause_code = cause & CAUSE_EXCCODE_MASK; // converte il cause in un valore "comprensibile"
+    /*debug*/
     klog_print("--Cause Code:--");
     klog_print_dec(cause_code);
     klog_print("--");
+    /*--*/
     if(cause_code == 8 || cause_code == 11){ // nel file di phase2 dice che una eccezione con cause 8 o 11 è da passare al piano superiore
         UsyscallHandler(supportPtr);
     }else{
@@ -82,9 +84,11 @@ void Syscall2(support_t* sup){
     } 
 
 void trapHandler(support_t* sup){
+    /*debug*/
     klog_print("trap--entryhi--");
     klog_print_hex(sup->sup_exceptState[GENERALEXCEPT].entry_hi);
     klog_print("--");
+    /*--*/
     Syscall2(sup);
 }
 
@@ -104,17 +108,20 @@ int Syscall4(support_t* sup){
     unsigned int startingAddr = status->reg_a1;
     int length                = status->reg_a2;
 
-
+    /*debug*/
     klog_print("len passata:  \n");
     klog_print_dec(length);
     klog_print("--\n");
+    /*--*/
     
     // check dimensioni
     if(length < 0 || length > 128){
         *a0 = -1;
+        /*debug*/
         klog_print("dim wrong");
         klog_print_dec(*a0);
         klog_print("--");
+        /*--*/
         SYSCALL(TERMINATE,0,0,0);
         return *a0;
     }
@@ -125,9 +132,11 @@ int Syscall4(support_t* sup){
     * Oppure Stack:  0xC000.0000 > addr >= 0xBFFF.F000
     **/
     if(length == 0){
+        /*debug*/
         klog_print("dim = 0");
         klog_print_dec(*a0);
         klog_print("--");
+        /*--*/
         *a0 = 0;
         return *a0;
     } 
@@ -151,9 +160,11 @@ int Syscall4(support_t* sup){
             retVal = SYSCALL(DOIO,(int)&term->transm_command,command,0);
             if((retVal & 0xff) != 5){ // DOIO ritorna: For character transmission and receipt, the status word, in addition to containing a device completion code, will also contain the character transmitted or received.
                 *a0 = -retVal;
+                /*debug*/
                 klog_print("errore DOIO");
                 klog_print_dec(*a0);
                 klog_print("--");
+                /*--*/
                 SYSCALL(VERHOGEN,(int)&writeTermsemaphore,0,0);
                 return *a0;
             }
@@ -169,9 +180,11 @@ int Syscall4(support_t* sup){
                 
                 SYSCALL(VERHOGEN,(int)&writeTermsemaphore,0,0);
                 *a0 = -1;
+                /*debug*/
                 klog_print("Errore DOIO 2");
                 klog_print_dec(*a0);
                 klog_print("--");
+                /*--*/
                 return *a0;
             }
             *(a0++);
@@ -179,15 +192,19 @@ int Syscall4(support_t* sup){
     }else{
         *a0=-1;
         SYSCALL(VERHOGEN,(int)&writeTermsemaphore,0,0);
+        /*debug*/
         klog_print("--Errore Pagina non valida--");
         klog_print_dec(*a0);
         klog_print("--");
+        /*--*/
         return *a0;
     }
     SYSCALL(VERHOGEN,(int)&writeTermsemaphore,0,0);
+    /*debug*/
     klog_print("Corretto:");
     klog_print_dec(*a0);
     klog_print("--");
+    /*--*/
     return *a0;
 }
 
@@ -210,6 +227,7 @@ void Syscall5(support_t* sup){
             int retVal = SYSCALL(DOIO,(int)&term->recv_command,(int)RECEIVECHAR,0);
             int statusCode = retVal & 0xff;
             int charRecv = (retVal >> 8) & 0xff; // char
+            /*debug*/
             klog_print("--Valori: retVal,statusCode,CharRecv-");
             klog_print_hex(retVal);
             klog_print("--");
@@ -217,6 +235,7 @@ void Syscall5(support_t* sup){
             klog_print("--");
             klog_print_hex(charRecv);
             klog_print("--end valori--");
+            /*--*/
             if(statusCode != 5){
                 *a0= -statusCode;
                 SYSCALL(VERHOGEN,(int)&readTermsemaphore,0,0);
