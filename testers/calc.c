@@ -19,7 +19,7 @@ void main() {
     char buf[4]; // numero simbolo numero \n
     int len = SYSCALL(READTERMINAL,(int)buf,0,0);
     if(len > 4){
-        print(WRITETERMINAL,"errore Lunghezza valori");
+        print(WRITETERMINAL,"errore Lunghezza valori\n");
         SYSCALL(TERMINATE,0,0,0);
     }
     char operation = buf[1]; // dove si trova l'op
@@ -49,7 +49,7 @@ void main() {
             break;
         case (3):
             if(num2 == 0){// divisione per 0
-                print(WRITETERMINAL,"Divisione per 0");
+                print(WRITETERMINAL,"Divisione per 0\n");
                 SYSCALL(TERMINATE,0,0,0); 
             }
             result =   num1 / num2;
@@ -67,7 +67,7 @@ void main() {
             
             break;
         default:
-            print(WRITETERMINAL,"Errore operazione non riconosciuta");
+            print(WRITETERMINAL,"Errore operazione non riconosciuta\n");
             SYSCALL(TERMINATE,0,0,0);
     }
    
