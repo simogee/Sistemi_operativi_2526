@@ -2,19 +2,15 @@
 
 /* dove inizializziamo i processi utente
 Primo: inizializziamo processo test/process_initiatior che dovrà:
-    inizializzare strutture dati condivise: swap pool table, swap pool sem, device sem.
-    Lanciare 1-8 processi utente
+    inizializzare strutture dati condivise: swap pool table e semafori generali
+    Lanciare la shell e fare P sul masterSem.
     Attende il termine dei processi lanciati.
-Dobbiamo inizializzare le strutture dati condivise tra 
 */
 
 support_t supportTable[UPROCMAX]; // tabella statica dove per ogni processo con ASID viene salvata la struttura support_t. Ogni PCB ci può accedere tramite support_t *p_supportStruct;
 //semafori eventi
 int masterSemaphore; // indica quando la shell termina
 int shellSemaphore;  //indica quando il programma lanciato dalla shell termina
-
-//semafori mutex
-//int flashSemaphore[UPROCMAX];
 
 int readTermsemaphore;
 int writeTermsemaphore;
@@ -35,21 +31,20 @@ void resetState(state_t* stato){
 }
 //inizializziamo lo stato di un Uproc
 void initState(state_t*stato,int asid){
-    resetState(stato); // per sicurezza cancelliamo tutto ciò che poteva essere scritto in precedenza
-    stato->pc_epc = 0x800000B0;
-    stato->status = MSTATUS_MPP_U | MSTATUS_MPIE_MASK; // mie interrupt abilitati, mpie interrupt abilitati quando stato viene ripristinato. Qui diciamo quando verrà ripristinato stato futuro(perchè inizializziamo)
-    stato->reg_sp = 0xC0000000;
-    stato->mie = MIE_ALL;
+    resetState(stato); // per sicurezza cancelliamo tutto ciò che poteva essere scritto in precedenza: evitiamo che i registri non inizializzati contengano valori casuali
+    stato->pc_epc = UPROCSTARTADDR;
+    stato->status = MSTATUS_MPP_U | MSTATUS_MPIE_MASK; // Primo indica usermode, secondo interrupt globalmente abilitati, mpie interrupt abilitati quando stato viene ripristinato. Qui diciamo quando verrà ripristinato stato futuro(perchè inizializziamo)
+    stato->reg_sp = USERSTACKTOP;
+    stato->mie = MIE_ALL; //quali interrupt specifici sono abilitati
     stato->entry_hi= (asid << ASIDSHIFT);
 }
-//come scritto nelle side: solo sup_asid,sup_exceptContext[2], and sup_privatePgTbl[32] richiedono init prima di richiesta di creazione processo
 /**
- * exceptContext => dove va gestita l'eccezione e i parametri ad essa associata, in particolare 
+ * exceptContext: dove va gestita l'eccezione generata
  */
 void initSupportStructure(int asid){
     support_t* supportProc = &supportTable[asid-1];
     supportProc->sup_asid = asid;
-
+    //inizializzo i context per la corretta gestione dell'eccezione che viene invocata.
     supportProc->sup_exceptContext[PGFAULTEXCEPT].pc =(unsigned int)pager;
     supportProc->sup_exceptContext[PGFAULTEXCEPT].status =MSTATUS_MPP_M | MSTATUS_MIE_MASK; //kernel mode con tutti gli interrupt abilitati
     supportProc->sup_exceptContext[PGFAULTEXCEPT].stackPtr=(unsigned int)&supportProc->sup_stackTLB[499];
@@ -68,20 +63,16 @@ void initSupportStructure(int asid){
         supportProc->sup_privatePgTbl[i].pte_entryHI=(VPN << VPNSHIFT)|(asid << ASIDSHIFT);
         supportProc->sup_privatePgTbl[i].pte_entryLO=DIRTYON;
     }
-    //pagina stack
+    //pagina stack(32)
     supportProc->sup_privatePgTbl[USERPGTBLSIZE-1].pte_entryHI=(stack_addr<<VPNSHIFT)|(asid<< ASIDSHIFT);
-    supportProc->sup_privatePgTbl[USERPGTBLSIZE-1].pte_entryLO=DIRTYON;
+    supportProc->sup_privatePgTbl[USERPGTBLSIZE-1].pte_entryLO=DIRTYON; // pagina scrivibile, VALID è off 
 
 }
 
 
-/**void initDevSemaphore(int* fls_dev){
-    for(int i = 0; i< UPROCMAX;i++){
-        flashSemaphore[i] = 1;
-    }
-}*/
+
 //prende da support table supportTable[asid-1],inizializza la support struct(initSupportStructure), prepara lo state iniziale-> registri puntati correttamente, user mode, interrupt abilitati, asid in entry_hi e chiama create process(Kernel)
-// gli asid validi sono 1-8
+// gli asid validi per i processi utente: sono 1-8. asid 0 è riservato a kernel
 void processCreation(int asid){
     if(asid <= 0 || asid > UPROCMAX){
         SYSCALL(TERMINATE,0,0,0);
@@ -104,7 +95,7 @@ void test(){
     readTermsemaphore = 1;
     writeTermsemaphore = 1;
     initSwapTable();
-    //initDevSemaphore(flashSemaphore);
+    
     processCreation(1);//shell
     SYSCALL(PASSEREN,((unsigned int)&masterSemaphore),0,0);
     SYSCALL(TERMPROCESS,0,0,0); //termino il processo test
