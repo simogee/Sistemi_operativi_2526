@@ -39,7 +39,7 @@ void trapHandler(support_t*spt);
 //syscall handler
 void UsyscallHandler(support_t*spt);
 
-
+void freeFrames(int asid);
 
 
 

@@ -18,6 +18,8 @@ void Syscall6(support_t*sup);
 
 int checkAddress(unsigned int address);
 
+
+
 void generalExceptionHandler(){
     // devo ottenere il tipo di eccezione ed indirizzarla nell'handler corretto: syscall o trap
     support_t* supportPtr = (support_t*) SYSCALL(GETSUPPORTPTR,0,0,0);
@@ -67,12 +69,15 @@ void UsyscallHandler(support_t *sup){
  * sup_asid
  * pageTable -> invalidare
  **/
+
 void Syscall2(support_t* sup){
+    freeFrames(sup->sup_asid);
     if(sup->sup_asid == 1){// il valore che ho scelto come asid della shell
         SYSCALL(VERHOGEN,(int)&masterSemaphore,0,0);
     }else{
         SYSCALL(VERHOGEN,(int)&shellSemaphore,0,0);
     }
+    
     SYSCALL(TERMPROCESS,0,0,0);
     } 
 
@@ -249,3 +254,5 @@ int checkAddress(unsigned int address){
         return 1;
     }
 }
+
+

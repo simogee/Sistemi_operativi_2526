@@ -40,12 +40,15 @@ void main() {
    switch(index){
         case (0):
             result =  num1 + num2;
+            reminder = 0;
             break;
         case (1):
             result=   num1 - num2;
+            reminder = 0;
             break;
         case (2):
             result=   num1 * num2;
+            reminder = 0;
             break;
         case (3):
             if(num2 == 0){// divisione per 0
@@ -62,7 +65,7 @@ void main() {
                 reminder = iter;
             }else{
                 reminder = num1 -(result * num2);
-                reminder = ((reminder*10) / num2)*10;
+                reminder = ((reminder*10) / num2);  //
             }
             
             break;

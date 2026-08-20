@@ -77,7 +77,8 @@ void pager(){
     klog_print_dec(missingPage); // scrive sul buffer al contrario quando metti in ascii
     klog_print("--End--");
 
-    int isFree = 0; //per distinguere se fare o no punto 8
+    int isFree = 0; //per distinguere se fare o no punto 8: 1-> esiste un frame non ancora occupato, 0 tutti i frame sono occupati
+
     //devo trovare un frame da liberare: caso 1. esiste un frame vuoto, caso 2 devo eliminare una pagina
     int frameVictim = -1;
     for(int i = 0; i < POOLSIZE;i++){
@@ -94,9 +95,9 @@ void pager(){
     } 
     //indirizzo fisico del frame da killare
     unsigned int frameAddr = SWAP_POOL_START +(frameVictim * PAGESIZE);
-    //punto 8-> solo se frame occupato. UPdate atomico pageT e TLB, write nel backing store. Devo inoltre 
+    //punto 8-> solo se frame occupato. Update atomico pageT e TLB: invalido la entry victim e poi write nel backing store.
     if(isFree != 1){
-        atomicRefresh(&swapPoolTable[frameVictim],-1,0);
+        atomicRefresh(&swapPoolTable[frameVictim],-1,0); // --> passo l'indirizzo del frame Victim, 
          /* Ora devo scrivere sul device DATA0 field con il corretto indirizzo di start del blocco da 4k: Il frameStartAddress*/
         int killedPage = vpnToPage(swapPoolTable[frameVictim].sw_pageNo);
         int IOstatus =rwToMem(frameVictim,swapPoolTable[frameVictim].sw_asid,killedPage,1);//scrivo la pagina da killare in memoria.
@@ -123,22 +124,28 @@ void pager(){
     LDST(&supportPTR->sup_exceptState[PGFAULTEXCEPT]);
 }
 
-//validation = 0 invalido, validation = 1 valido, frame = -1 per valdation off
+// Parametro validation = 0 invalida la pagina, validation = 1 valida la pagina. frame serve per aggiornare correttamente la PFN
 void atomicRefresh(swap_t* swapFrame,int frame,int validation){
     //salvo il "vecchio" stato
-    int status = getSTATUS();
+    unsigned int status = getSTATUS();
     //disabilito interrupt
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
     
-    if(validation == 0 && frame == -1){ // devo invalidare
+    if(validation == 0){ // devo invalidare
         //devo individuare la pagina relativa da invalidare: swa_pte PTE==Page Table Entry Devo solo modificare il bit V VALIDON lo faccio con and e ~VALIDO
         swapFrame->sw_pte->pte_entryLO &= ~VALIDON;
     }else if(validation == 1){ //devo validare
         //questo funziona perchè frame , DIRTYON e VALIDON occupano bit diversi. frame è allineato con PAGESIZE(4096 o 0x1000) quindi ultimi 12bit sono vuoti dove stanno i flag
         swapFrame->sw_pte->pte_entryLO = frame | DIRTYON | VALIDON;
     }
-    // dovrei controllare se nella tlb questa pagina è conservata: primo approccio è cancellare tutto.
-    TLBCLR();
+    //controllo la entry nel tlb
+    setENTRYHI(swapFrame->sw_pte->pte_entryHI);
+    TLBP();
+    if((getINDEX() & PRESENTFLAG)==0){ //il registro index della CPU0 ha il most sig. bit = P, e la entry della tlb in 13-8 bit. uso la maschera per estrarre il bit P.
+        setENTRYLO(swapFrame->sw_pte->pte_entryLO);
+        TLBWI();
+    }
+
     //riattivo interrupts
     setSTATUS(status);
     
@@ -208,4 +215,28 @@ int vpnToPage(int vpn){
         return -1;
     }
         
+}
+
+// Devo invalidare le entry: prendo il mutex, scorro la swapPoolTable e devo invalidare pageEntry corrispondente ed eventualmente il TLB.
+void freeFrames(int asid){
+    SYSCALL(PASSEREN,(int)&swapPoolSemaphore,0,0);
+    for(int i = 0 ; i < POOLSIZE;i++){
+        if(swapPoolTable[i].sw_asid == asid){
+            unsigned int status = getSTATUS();
+            setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK); // interrupts disabilitati
+            swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON; // invalido la entry
+            setENTRYHI(swapPoolTable[i].sw_pte->pte_entryHI);
+            TLBP();
+            if((getINDEX() & PRESENTFLAG)==0){ //il registro index della CPU0 ha il most sig. bit = P, e la entry della tlb in 13-8 bit. uso la maschera per estrarre il bit P.
+                setENTRYLO(swapPoolTable[i].sw_pte->pte_entryLO);
+                TLBWI();
+            }
+            setSTATUS(status);
+            swapPoolTable[i].sw_asid = -1;
+            swapPoolTable[i].sw_pageNo = -1;
+            swapPoolTable[i].sw_pte = NULL; 
+        }
+    
+    }
+    SYSCALL(VERHOGEN,(int)&swapPoolSemaphore,0,0);
 }
