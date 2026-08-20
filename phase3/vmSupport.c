@@ -12,11 +12,10 @@ int vpnToPage(int vpn);
 int swapPoolSemaphore;
 static int fifoPages; /** dato che serve per decidere il frame vittima: ogni volta che c'è un page fault, incremento la variabile e il frame vittima è fifoPages % POOLSIZE.
                          eg. diciamo che tutti i frame sono occupati e compare un pagefault: fifopages = 0 mod 16 => frame 0, incremento 1.... prossimo pagefault 1 mod 16 = 1, incremento,ecc--*/ 
-
 /*funzioni da implementare*/
 /**
  * inizializzazione della swap pool table 
- * I frame devono matchare la dimensione delle pagine(duh)
+ * I frame devono matchare la dimensione delle pagine
  * POOLSIZE == 2 volte il numero di processmax.
  * Primo frame a 0x20020000. Ogni frame corrisponde a 0x1000(abbiamo deciso che le pagine hanno dimensione 4096 byte), Quindi POOLSIZE = 0x10, 0x10*0x1000 = 0x10000(memoria occupata da tutti)
  * Primo indirizzo finita swap pool: 0x20030000
@@ -42,7 +41,7 @@ void initSwapTable(){
 /** Dell'associazione: entrySwapPoolTable e frame se ne occuperà il pager, questa è una mini funzione che userà per associare gli indici(swpt) con i frame. */
 unsigned int addressSwapPool(int i){
     if(i < 0 || i >= POOLSIZE){ // non dovremme mai verificarsi
-        PANIC();
+        PANIC(); // forse meglio syscall2?
     }
     return SWAP_POOL_START +(i*PAGESIZE);
 }
@@ -52,23 +51,26 @@ int rwToMem(int frameVictim,int asid,int pageNo,int op);
 //pager
 /** 
  * -------------------------
- * Il pager viene chiamato ogni qual volta ci sia bisono di aggiornare le pagine in pageTable(caricamento da Backing store e scrittura in Backing Store)
- * Questo rende fifoPages ottimo per ciclare tra le pagine: inizia che sceglie il frame 0 che ospita la pagina caricata da più tempo e così via.
+ * Il pager viene chiamato quando si verifica un pageFault. l'iter è il seguente: processo genera indirizzo virtuale, si cerca in tlb: se presente [----], se non è presente si va a guardare nella pageTable: 
+ * qui si guarda il bit V: V = 1 valid tutto ok, bit V = 0 allora la pagina è mancante e va caricata dal backing store. Dobbiamo eliminare una pagina per fare spazio alla missing, selezioniamo con un algoritmo(FIFO qui)
+ * invalidiamo le entry con V= 0(sia pagetable che TLB) e scriviamo nel backingstore la pagina vittima. poi leggiamo dal backingstore la pagina missing, e una volta finito validiamo V=1.
+ * Una volta terminato carichiamo di nuovo lo stato precedente ma questa volta non si verificherà il pageFault e potremo proseguire
+ * 
  */
 void pager(){
 
     //prendo le informazioni necessarie per proseguire
-    support_t* supportPTR = (support_t*)SYSCALL(GETSUPPORTPTR,0,0,0); // ottengo il puntatore alla struttura di supporto
+    support_t* supportPTR = (support_t*)SYSCALL(GETSUPPORTPTR,0,0,0); // ottengo il puntatore alla struttura di supporto del processo corrente
     int cause = supportPTR->sup_exceptState[PGFAULTEXCEPT].cause; //ottengo l'eccezione
     cause = cause & CAUSE_EXCCODE_MASK; //estraggo dalla cause il valore che indica se pagefault o TLBmod
-    if(cause == EXC_MOD){ //causa modifica tlb: queste costanti si trovano in /uriscv/cpu.h
+    if(cause == EXC_MOD){ //causa modifica tlb: queste costanti si trovano in /uriscv/cpu.h. Inoltre questa eccezione non si dovrebbe mai verificare perchè abbiamo DIRTYON sempre attivo
         trapHandler(supportPTR); 
     } 
 
     //gain del mutual access alla swap pool
     SYSCALL(PASSEREN,(int)&swapPoolSemaphore,0,0);  //in headers/const.h
 
-    //determino la missing page(Forse si può direttamente fare una funzione poichè non è la prima volta che mi viene chiesto)
+    //determino la missing page
     unsigned int entryHi = supportPTR->sup_exceptState[PGFAULTEXCEPT].entry_hi;
     int missingVpn = (entryHi &(GETSHAREFLAG | GETPAGENO)) >> VPNSHIFT; // con getSHAREFLAG conservo tutti i bit che indicano la pagina: 0x80005000 -> 0x80005
     // dato un indirizzo 0x80005 o 0xBFFFFF controlla gli ultimi 8 bit: se 0-30 ritorna la pagina, altrimenti se FF = 255 ritorna pagina 31(stack)  
@@ -98,7 +100,7 @@ void pager(){
     unsigned int frameAddr = SWAP_POOL_START +(frameVictim * PAGESIZE);
     //punto 8-> solo se frame occupato. Update atomico pageT e TLB: invalido la entry victim e poi write nel backing store.
     if(isFree != 1){
-        atomicRefresh(&swapPoolTable[frameVictim],-1,0); // --> passo l'indirizzo del frame Victim, 
+        atomicRefresh(&swapPoolTable[frameVictim],-1,0); // --> Invalido le entry in tlb e pageTable
          /* Ora devo scrivere sul device DATA0 field con il corretto indirizzo di start del blocco da 4k: Il frameStartAddress*/
         int killedPage = vpnToPage(swapPoolTable[frameVictim].sw_pageNo);
         int IOstatus =rwToMem(frameVictim,swapPoolTable[frameVictim].sw_asid,killedPage,1);//scrivo la pagina da killare in memoria.
