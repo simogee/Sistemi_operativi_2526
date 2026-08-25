@@ -104,7 +104,7 @@ void trapHandler(support_t* sup){
  */
 int Syscall4(support_t* sup){
     state_t* status = &sup->sup_exceptState[GENERALEXCEPT];
-    int* a0                   = (int*)status->reg_a0;
+    int* a0                   = (int*)&status->reg_a0;
     unsigned int startingAddr = status->reg_a1;
     int length                = status->reg_a2;
 
@@ -168,7 +168,7 @@ int Syscall4(support_t* sup){
                 SYSCALL(VERHOGEN,(int)&writeTermsemaphore,0,0);
                 return *a0;
             }
-            *(a0++);
+            (*a0)++;
         }
     }else if((vpnStart >= 0xBFFFF && vpnStart <=0xBFFFF)&&(vpnEnd >=0xBFFFF && vpnEnd <= 0xBFFFF)){
         //do the writing
@@ -187,7 +187,7 @@ int Syscall4(support_t* sup){
                 /*--*/
                 return *a0;
             }
-            *(a0++);
+            (*a0)++;
         }
     }else{
         *a0=-1;
