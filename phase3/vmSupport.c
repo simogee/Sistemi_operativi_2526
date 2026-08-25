@@ -1,4 +1,3 @@
-/* dove implementiamo swap pool table, pager,I/O flash device*/
 #include "supportL.h"
 
 
@@ -51,7 +50,7 @@ int rwToMem(int frameVictim,int asid,int pageNo,int op);
 //pager
 /** 
  * -------------------------
- * Il pager viene chiamato quando si verifica un pageFault. l'iter è il seguente: processo genera indirizzo virtuale, si cerca in tlb: se presente [----], se non è presente si va a guardare nella pageTable: 
+ * Il pager viene chiamato quando si verifica un pageFault. l'iter è il seguente: processo genera indirizzo virtuale, si cerca in tlb: se presente si controlla il bit V e in caso 1 si accede a frame. Caso v=0 allora sostituzione. se non è presente la pagina si va a guardare nella pageTable: 
  * qui si guarda il bit V: V = 1 valid tutto ok, bit V = 0 allora la pagina è mancante e va caricata dal backing store. Dobbiamo eliminare una pagina per fare spazio alla missing, selezioniamo con un algoritmo(FIFO qui)
  * invalidiamo le entry con V= 0(sia pagetable che TLB) e scriviamo nel backingstore la pagina vittima. poi leggiamo dal backingstore la pagina missing, e una volta finito validiamo V=1.
  * Una volta terminato carichiamo di nuovo lo stato precedente ma questa volta non si verificherà il pageFault e potremo proseguire
@@ -60,7 +59,7 @@ int rwToMem(int frameVictim,int asid,int pageNo,int op);
 void pager(){
 
     //prendo le informazioni necessarie per proseguire
-    support_t* supportPTR = (support_t*)SYSCALL(GETSUPPORTPTR,0,0,0); // ottengo il puntatore alla struttura di supporto del processo corrente
+    support_t* supportPTR = (support_t*)SYSCALL(GETSUPPORTPTR,0,0,0); // ottengo il puntatore alla struttura di supporto del processo corrente(non posso accedere direttamente alle strutture di phase2 quindi sfrutto la SYSCALL per ottenre le info necessarie)
     int cause = supportPTR->sup_exceptState[PGFAULTEXCEPT].cause; //ottengo l'eccezione
     cause = cause & CAUSE_EXCCODE_MASK; //estraggo dalla cause il valore che indica se pagefault o TLBmod
     if(cause == EXC_MOD){ //causa modifica tlb: queste costanti si trovano in /uriscv/cpu.h. Inoltre questa eccezione non si dovrebbe mai verificare perchè abbiamo DIRTYON sempre attivo
@@ -123,7 +122,7 @@ void pager(){
     atomicRefresh(&swapPoolTable[frameVictim],frameAddr,1);   
     //step 13
     SYSCALL(VERHOGEN,(int)&swapPoolSemaphore,0,0);
-    //step 14
+    //step 14: ricarico l'istruzione che ha causato pagefault: questa seconda volta non dovrebbe generare eccezioni
     LDST(&supportPTR->sup_exceptState[PGFAULTEXCEPT]);
 }
 
@@ -163,7 +162,7 @@ void atomicRefresh(swap_t* swapFrame,int frame,int validation){
  * nel command devo scrivere
 **/
 int rwToMem(int frameVictim,int asid,int page,int op){
-    if(op != 1 && op != 2){
+    if(op != 1 && op != 2){ // controllo eccessivo, non serve a nulla perchè op la scelgo direttamente io nel codice.
         PANIC();
     }
     unsigned int ramAddr = addressSwapPool(frameVictim);
@@ -200,12 +199,6 @@ int rwToMem(int frameVictim,int asid,int page,int op){
     return ioStatus;
 }
 
-
-
-//pager: ottiene la pagina che vuole essere caricata, cerca se c'è un frame libero, se sì la carica e basta, altrimenti: deve selezionare il frame da killare, al suo interno c'è la pagina toKill
-// ora dobbiamo: invalidare la pagina, scrivere toKill nel flashDevice,scrivere la pagina nuova toAdd nel frame, aggiornare i dati della swapPoolTable, aggiornare le tabelle. 
-
-
 //converte il vpn in pagina
 
 int vpnToPage(int vpn){
@@ -222,7 +215,7 @@ int vpnToPage(int vpn){
         
 }
 
-// Devo invalidare le entry: prendo il mutex, scorro la swapPoolTable e devo invalidare pageEntry corrispondente ed eventualmente il TLB.
+// Devo invalidare le entry: prendo il mutex, scorro la swapPoolTable e devo invalidare pageEntry corrispondente ed eventualmente il TLB. Questa la uso in SYSCALL 2 
 void freeFrames(int asid){
     SYSCALL(PASSEREN,(int)&swapPoolSemaphore,0,0);
     for(int i = 0 ; i < POOLSIZE;i++){
