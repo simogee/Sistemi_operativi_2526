@@ -7,13 +7,13 @@ void generalExceptionHandler();
 void trapHandler(support_t*spt);
 //syscall handler
 void UsyscallHandler(support_t *sup);
-
+//terminate
 void Syscall2(support_t* sup);
-
+//writeTerminal
 int Syscall4(support_t*sup);
-
+//readTerminal
 void Syscall5(support_t*sup);
-
+//Execute 
 void Syscall6(support_t*sup);
 
 int checkAddress(unsigned int address);
@@ -39,7 +39,7 @@ void generalExceptionHandler(){
 
 }
 
-
+// come nelle syscall di fase2 dobbiamo aumentare il pc una volta eseguita la syscall e caricare lo stato aggiornato
 void UsyscallHandler(support_t *sup){
     state_t* stato = &sup->sup_exceptState[GENERALEXCEPT];
     int num = stato->reg_a0;

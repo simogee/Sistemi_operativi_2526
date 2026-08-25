@@ -11,7 +11,6 @@ int vpnToPage(int vpn);
 int swapPoolSemaphore;
 static int fifoPages; /** dato che serve per decidere il frame vittima: ogni volta che c'è un page fault, incremento la variabile e il frame vittima è fifoPages % POOLSIZE.
                          eg. diciamo che tutti i frame sono occupati e compare un pagefault: fifopages = 0 mod 16 => frame 0, incremento 1.... prossimo pagefault 1 mod 16 = 1, incremento,ecc--*/ 
-/*funzioni da implementare*/
 /**
  * inizializzazione della swap pool table 
  * I frame devono matchare la dimensione delle pagine
